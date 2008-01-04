@@ -354,7 +354,7 @@ function conditional_fields_forms_submit($form_id, &$form, $type, $controlled_fi
     // If the row already exists
     if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type))) {
       // If no value is set, delete the entry, else update it
-      if ($trigger_values['conditional_field_no_value']) {
+      if (empty($trigger_values) || $trigger_values['conditional_field_no_value']) {
         db_query("DELETE FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type);
       }
       else {
@@ -363,7 +363,7 @@ function conditional_fields_forms_submit($form_id, &$form, $type, $controlled_fi
     }
     else {
       // If values are set, create new entry
-      if (!$trigger_values['conditional_field_no_value']) {
+      if (!empty($trigger_values) && !$trigger_values['conditional_field_no_value']) {
         db_query("INSERT INTO {conditional_fields} (control_field_name, field_name, type, trigger_values) VALUES ('%s', '%s', '%s', '%s')", $controlling_field, $controlled_field, $type, serialize($trigger_values));
       }
     }    
