@@ -29,7 +29,9 @@ Drupal.ConditionalFields.switchField = function(id, values) {
 Drupal.ConditionalFields.findValues = function(field) {
   var values = [];
   field.find("option:selected, input:checked").each( function() {
-    values[values.length] = this.value;
+    if ($(this)[0].selected || $(this)[0].checked) {
+      values[values.length] = this.value;
+    }
   });
   return values;
 }       
