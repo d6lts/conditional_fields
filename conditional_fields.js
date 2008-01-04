@@ -10,23 +10,17 @@ Drupal.ConditionalFields.switchField = function(id, values) {
       var isActive = false;
       // Find the settings of the controlled field
       $.each(controlledFields, function(i, fieldSettings) {
-        $(fieldSettings.field_id).show();
+        $(fieldSettings.field_id).hide();
         // Find the trigger values of the controlled field (for this controlling field)
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (Drupal.ConditionalFields.inArray(val, values) != -1) {
-            isActive = true;
+            $(fieldSettings.field_id).show();
+            // Stop searching in this field
             return false;
           }
         });
-        // If there is an active trigger key in this controlling field, stop searching
-        if (isActive == true) {
-          return false;
-        }
-        // To do: feature. This would multiple controlling fields on the same field, but they are
+        // To do: feature. Multiple controlling fields on the same field, are
         // not supported for now. I should try other controlling fields.
-        else {
-          $(fieldSettings.field_id).hide();
-        }
       });
     }
   });
