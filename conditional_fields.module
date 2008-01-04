@@ -51,7 +51,7 @@ function _conditional_fields_admin($type) {
     '#type' => 'checkbox',
     '#title' => t('Use javascript'),
     '#description' => t('Select this box to dinamically hide and show conditional fields while editing a node.'),
-    '#default_value' => variable_get('c_fields_js_', $type)
+    '#default_value' => variable_get('c_fields_js_', $type, 1)
   );
   $form['reset'] = array(
     '#type' => 'checkbox',
