@@ -1,4 +1,4 @@
-/* $Id$ */
+// $Id$
 
 if (!Drupal.ConditionalFields) {
   Drupal.ConditionalFields = {};

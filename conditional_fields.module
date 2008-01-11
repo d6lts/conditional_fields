@@ -1,6 +1,5 @@
-// $Id$
-
 <?php
+// $Id$
 
 function conditional_fields_help($section) {
   if (preg_match('!^admin/content/types/.*/conditional$!', $section)) {

@@ -1,3 +1,5 @@
+$Id$
+
 Conditional Fields:
 -------------------
 A Drupal 5 module
