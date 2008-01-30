@@ -26,7 +26,7 @@ You can, for example, make a custom ‘article teaser’ field that is shown onl
 Dependencies:
 -------------
 - CCK / content.module -> http://drupal.org/project/cck
-- Fieldgroups / fieldgroups.module (included in CCK) -> Not required, but if enabled can also set groups as conditionals.
+- Fieldgroups / fieldgroups.module (included in CCK) -> Not required, but if enabled you can also set groups as controlled fields.
 
 
 Installation:
@@ -38,8 +38,11 @@ Installation:
 Usage:
 ------
 Once the module is activated, a new set of options will appear in the field editing form, from where you can select which of the allowed values available will make the field ‘controlled’. If no value is selected, the field will be shown as usual.
-There is a ‘Conditional fields’ tab in the content type admin page with a couple of options.
-
+There is a ‘Conditional fields’ tab in the content type admin page with the following options:
+- Use javascript: If checked, controlled fields will be dinamically toggled in the node editing form through javascript.
+- Administrators see all fields: If checked, users with 'administer conditional fields' permission will see all controlled fields of a node, even if the weren't triggered.
+- Orphaned controlled fields settings: These settings control the visibility (on node view) and editability (on node edit) of controlled fields when the controlling fields are not visible (e.g.: set to 'Hidden' in the fields display settings) or not editable (e.g.: by an acces control module).
+- Reset: If checked, all conditional fields configurations for this content type will be reset (though the fields themselves will remain untouched).
 
 Limitations:
 ------------
@@ -50,11 +53,13 @@ Limitations:
 
 To Do:
 ------
+Bug: Javascript show/hide not working in IE6/7 - http://drupal.org/node/210472
 Bug: multiple controlling fields on the same field don’t work
 Bug: when exporting/importing conditional fields, some trigger values are not saved
 Bug: some required fields are not correctly handled (e.g.: date)
 Feature: tune performance (using more static variables, adding cache)
 Feature: views integration
 Feature: port to drupal 6 (when cck is ported)
+Feature: add confirmation step to the reset option in conditional field administration page
 Test: test with pgsql
 Test: test different types of cck field for compatibility
