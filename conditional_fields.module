@@ -379,7 +379,7 @@ function conditional_fields_content_admin_field_validate($form_id, $form_values,
     if ($trigger_values['conditional_field_no_value'] && count($trigger_values) > 1) {
       form_error($form['widget']['conditional_fields'][$available_field], t("You cannot select 'Not set' and other values at the same time."));
     }
-    else if (!$trigger_values['conditional_field_no_value']) {
+    else if (module_exists('fieldgroup') && !$trigger_values['conditional_field_no_value']) {
       if ($group = $form_values['group']) { // If the field is in a group
         // If the available field IS a group, disallow it
         if (substr($available_field, 0, 6) == 'group_') {
