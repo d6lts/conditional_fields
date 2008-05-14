@@ -869,7 +869,15 @@ function theme_conditional_fields_form_item($item) {
     $output = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlling-field">'. drupal_render($item) .'</div>';
   }
   else if ($id = $item['#controlled_field']) {
-    $output = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlled-field">'. drupal_render($item) .'</div>';
+    if ($item['#type'] == 'markup') {
+      /* Avoid unnecessary divs in multiple fields */
+      $item['#prefix'] = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlled-field">';
+      $item['#suffix'] = '</div>';
+      $output = drupal_render($item); 
+    }
+    else {
+      $output = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlled-field">'. drupal_render($item) .'</div>';
+    }
   }
   else {
     $output = drupal_render($item); 

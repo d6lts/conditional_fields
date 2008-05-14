@@ -11,11 +11,21 @@ Drupal.ConditionalFields.switchField = function(id, values) {
       var isActive = false;
       /* Find the settings of the controlled field */
       $.each(controlledFields, function(i, fieldSettings) {
-        $(fieldSettings.field_id).hide();
+        /* Multiple fields are enclosed in fieldsets */
+        var parentTag = $(fieldSettings.field_id).parent().get(0).tagName;
+        if (parentTag == 'FIELDSET') {
+          $(fieldSettings.field_id).parent().hide();
+        } else {
+          $(fieldSettings.field_id).hide();
+        }
         /* Find the trigger values of the controlled field (for this controlling field) */
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (Drupal.ConditionalFields.inArray(val, values) != -1) {
-            $(fieldSettings.field_id).show();
+            if (parentTag == 'FIELDSET') {
+              $(fieldSettings.field_id).parent().show();
+            } else {
+              $(fieldSettings.field_id).show();
+            }
             /* Stop searching in this field */
             return false;
           }
