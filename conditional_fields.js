@@ -15,18 +15,32 @@ Drupal.ConditionalFields.switchField = function(id, values) {
         var parentTag = $(fieldSettings.field_id).parent().get(0).tagName;
         var parentId = $(fieldSettings.field_id).parent().attr('class');
         if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
-          $(fieldSettings.field_id).parent().hide();
+          var toSwitch = $(fieldSettings.field_id).parent();
         } else {
-          $(fieldSettings.field_id).hide();
+          var toSwitch = $(fieldSettings.field_id);
         }
+        if (Drupal.settings.ConditionalFields.ui_settings == "disable") {
+          toSwitch.find("textarea, input, select").attr("disabled", "disabled");
+        }
+        else {
+          toSwitch.hide();
+        }
+        
         /* Find the trigger values of the controlled field (for this controlling field) */
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (Drupal.ConditionalFields.inArray(val, values) != -1) {
             if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
-              $(fieldSettings.field_id).parent().show();
+              var toSwitch = $(fieldSettings.field_id).parent();
             } else {
-              $(fieldSettings.field_id).show();
+              var toSwitch = $(fieldSettings.field_id);
             }
+            if (Drupal.settings.ConditionalFields.ui_settings == "disable") {
+              toSwitch.find("textarea, input, select").attr("disabled", "");
+            }
+            else {
+              toSwitch.show();
+            }
+            
             /* Stop searching in this field */
             return false;
           }
