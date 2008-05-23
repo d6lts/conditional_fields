@@ -533,12 +533,12 @@ function conditional_fields_node_editing_form(&$form) {
           }
         }
         if ($controlling_fields[$group_element]) {
-          $form[$element]['#controlling_field'] = $element;
-          $form[$element]['#theme'] = 'conditional_fields_form_item';
+          $form[$element][$group_element]['#controlling_field'] = $group_element;
+          $form[$element][$group_element]['#theme'] = 'conditional_fields_form_item';
         }
         else if ($controlled_fields[$group_element]) {
-          $form[$element]['#controlled_field'] = $element;
-          $form[$element]['#theme'] = 'conditional_fields_form_item';
+          $form[$element][$group_element]['#controlled_field'] = $group_element;
+          $form[$element][$group_element]['#theme'] = 'conditional_fields_form_item';
         }
       }          
     }

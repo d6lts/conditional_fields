@@ -13,7 +13,8 @@ Drupal.ConditionalFields.switchField = function(id, values) {
       $.each(controlledFields, function(i, fieldSettings) {
         /* Multiple fields are enclosed in fieldsets */
         var parentTag = $(fieldSettings.field_id).parent().get(0).tagName;
-        if (parentTag == 'FIELDSET') {
+        var parentId = $(fieldSettings.field_id).parent().attr('class');
+        if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
           $(fieldSettings.field_id).parent().hide();
         } else {
           $(fieldSettings.field_id).hide();
@@ -21,7 +22,7 @@ Drupal.ConditionalFields.switchField = function(id, values) {
         /* Find the trigger values of the controlled field (for this controlling field) */
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (Drupal.ConditionalFields.inArray(val, values) != -1) {
-            if (parentTag == 'FIELDSET') {
+            if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
               $(fieldSettings.field_id).parent().show();
             } else {
               $(fieldSettings.field_id).show();
