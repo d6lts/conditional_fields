@@ -1,5 +1,5 @@
 <?php
-// $Id$
+// $Id $
 
 // Fields settings
 define ('C_FIELDS_JS_NO', 0);
@@ -200,7 +200,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
     // If a group is now empty, we should hide it too
     foreach ((array)$changed_groups as $group) {
       $keep = FALSE;
-      foreach ($node->content[$group] as $key => $group_content) {
+      foreach ((array)$node->content[$group] as $key => $group_content) {
         if (substr($key, 0, 6) == 'field_' && $group_content['#value'] !== '') {
           $keep = TRUE;
         }
@@ -607,7 +607,6 @@ function conditional_fields_node_editing_form_validate($form_id, $form_values, $
 function conditional_fields_find_required_field(&$field, $is_unset = FALSE) {
   if ($field['#required'] && !$is_unset) {
     $field['#required'] = FALSE;
-    $field['#title'] = $field['#title'] . theme('conditional_field_required_title', $field['#title']);
     $field['#required_field'] = TRUE;
     return TRUE;
   }
@@ -859,11 +858,18 @@ function conditional_fields_allowed_values($field) {
 }
 
 /**
- * Themes a mock required form element title.
+ * Recursive function to set required for all conditionally required fields.
+ * This causes Drupal to render conditionally required fields in a way that
+ * indicates they are required when visible.  e.g., with an asterisk.
  */
-function theme_conditional_field_required_title($title) {
-  if (!empty($title)) {
-    return '<span class="form-required" title="'. t('This field is required.') .'">*</span>';
+function conditional_fields_set_required_for_render(&$item) {
+  if ($item['#required_field']) {
+    $item['#required'] = TRUE;
+  }
+  else {
+    foreach(element_children($item) as $child) {
+      conditional_fields_set_required_for_render($item[$child]);
+    }
   }
 }
 
@@ -884,6 +890,7 @@ function theme_conditional_fields_form_item($item) {
     $output = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlling-field">'. drupal_render($item) .'</div>';
   }
   else if ($id = $item['#controlled_field']) {
+    conditional_fields_set_required_for_render(&$item);
     if ($item['#type'] == 'markup') {
       /* Avoid unnecessary divs in multiple fields */
       $item['#prefix'] = '<div id="conditional-'. form_clean_id($id) .'" class="conditional-field controlled-field">';
