@@ -862,7 +862,7 @@ function conditional_fields_allowed_values($field) {
  * This causes Drupal to render conditionally required fields in a way that
  * indicates they are required when visible.  e.g., with an asterisk.
  */
-function conditional_fields_set_required_for_render(&$item) {
+function conditional_fields_set_required_for_render($item) {
   if ($item['#required_field']) {
     $item['#required'] = TRUE;
   }
