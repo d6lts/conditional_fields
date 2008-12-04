@@ -368,7 +368,7 @@ function _conditional_fields_build_form($type, $form, $control_field, $controlle
       $form['conditional_fields'][$field['field_name']] = array(
         '#type' => 'select',
         '#multiple' => TRUE,
-        '#title' => t($field['widget']['label']),
+        '#title' => t($field['widget']['label']) .' ('. $field['field_name'] .')',
         // To do: set right url for groups
         '#description' => t('<a href="@edit-field">Edit the allowed values</a> of the %field-name field.', array('@edit-field' => url('admin/content/types/'. $type['url_str'] .'/fields/'. $field['field_name'], 'destination=admin/content/types/'. arg(3) .'/fields/'. arg(5), 'edit-allowed-values'), '%field-name' => t($field['widget']['label']))),
         '#options' => $allowed_values[$field['field_name']],
