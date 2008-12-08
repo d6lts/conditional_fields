@@ -91,7 +91,7 @@ Drupal.ConditionalFields.fieldChange = function() {
 Drupal.behaviors.ConditionalFields = function (context) {
   $('.controlling-field:not(.ConditionalFields-processed)', context).addClass('ConditionalFields-processed').each(function () {
     /* Set default state */
-    Drupal.ConditionalFields.switchField('#' + $(this).attr('id'), Drupal.ConditionalFields.findValues($(this)), true);
+    Drupal.ConditionalFields.switchField('#' + $(this).attr('id'), Drupal.ConditionalFields.findValues($(this)));
     /* Add events. Apparently, Explorer doesn't catch the change event? */
     $.browser.msie == true ? $(this).click(Drupal.ConditionalFields.fieldChange) : $(this).change(Drupal.ConditionalFields.fieldChange);
   });
