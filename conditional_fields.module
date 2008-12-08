@@ -6,6 +6,10 @@ define ('C_FIELDS_JS_NO', 0);
 define ('C_FIELDS_JS_HIDE', 1);
 define ('C_FIELDS_JS_DISABLE', 2);
 
+define ('C_FIELDS_ANIMATION_NO', 0);
+define ('C_FIELDS_ANIMATION_FADE', 1);
+define ('C_FIELDS_ANIMATION_SLIDE', 2);
+
 define ('C_FIELDS_ORPHANED_HIDE', 0);
 define ('C_FIELDS_ORPHANED_SHOW_TRIGGERED', 1);
 define ('C_FIELDS_ORPHANED_SHOW_ALL', 2);
@@ -37,8 +41,6 @@ function conditional_fields_menu() {
       'type' => MENU_LOCAL_TASK,
       'weight' => 5
       );
-    
-    
   }
   
   return $items;
@@ -56,18 +58,49 @@ function conditional_fields_perm() {
  */
 function _conditional_fields_admin($form, $type) {
   $form = array();
-  $options = array(C_FIELDS_JS_NO => t("Don't use javascript. Fields are only hidden on node view."), C_FIELDS_JS_HIDE => t('Hide untriggered fields.'), C_FIELDS_JS_DISABLE => t('Disable untriggered fields.'));
+  
   $form['js_set'] = array(
     '#type' => 'fieldset',
     '#title' => t('User Interface options'),
-    '#description' => t('Choose the desired javascript behaviour in node editing forms.'),
     '#collapsible' => TRUE
   ); 
   $form['js_set']['js'] = array(
     '#type' => 'radios',
-    '#options' => $options,
+    '#options' => array(
+      C_FIELDS_JS_NO => t("Don't use javascript. Fields are only hidden on node view."), 
+      C_FIELDS_JS_HIDE => t('Hide untriggered fields.'), 
+      C_FIELDS_JS_DISABLE => t('Disable untriggered fields.')
+    ),
+    '#title' => 'Javascript',
+    '#description' => t('Choose the desired javascript behaviour in node editing forms.'),
     '#default_value' => variable_get('c_fields_js_' . $type, C_FIELDS_JS_HIDE)
   );  
+  $form['js_set']['anim'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Animation'),
+    '#description' => t("These settings have effect only if you select the 'Hide untriggered fields' option above."),
+  ); 
+  $form['js_set']['anim']['animation'] = array(
+    '#type' => 'radios',
+    '#title' => t('Type'),
+    '#default_value' => variable_get('c_fields_animation_' . $type, C_FIELDS_ANIMATION_NO),
+    '#options' => array(
+      C_FIELDS_ANIMATION_NO => t('No animation'),
+      C_FIELDS_ANIMATION_FADE => t('Slide down'),
+      C_FIELDS_ANIMATION_SLIDE => t('Fade'),
+     ),
+  );
+  $form['js_set']['anim']['anim_speed'] = array(
+    '#type' => 'radios',
+    '#title' => t('Speed'),
+    '#description' => t('The speed at which the animation is performed. Slow = 600ms; Normal = 400ms; Fast = 200ms.'),
+    '#default_value' => variable_get('c_fields_anim_speed_' . $type, 'normal'),
+    '#options' => array(
+      'slow' => t('Slow'),
+      'normal' => t('Normal'),
+      'fast' => t('Fast'),
+     ),
+  );
   $form['orphaned'] = array(
     '#type' => 'fieldset',
     '#title' => t('Orphaned controlled fields settings'),
@@ -102,7 +135,7 @@ function _conditional_fields_admin($form, $type) {
   );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Submit')
+    '#value' => t('Save'),
   );
   return $form;
 }
@@ -116,6 +149,8 @@ function _conditional_fields_admin_submit($form, &$form_state) {
   }
   
   variable_set('c_fields_js_' . $type, $form_state['values']['js']);  
+  variable_set('c_fields_animation_' . $type, $form_state['values']['animation']);
+  variable_set('c_fields_anim_speed_' . $type, $form_state['values']['anim_speed']);
   variable_set('c_fields_view_' . $type, $form_state['values']['orphaned_view']);
   variable_set('c_fields_edit_' . $type, $form_state['values']['orphaned_edit']);
   variable_set('c_fields_show_all_' . $type, $form_state['values']['show_all']);
@@ -569,8 +604,11 @@ function conditional_fields_node_editing_form(&$form) {
   switch ($ui_settings) {
     case C_FIELDS_JS_DISABLE:
       $settings['ui_settings'] = 'disable';
+      conditional_fields_add_js($settings);
+      break;
     case C_FIELDS_JS_HIDE:
-      // Add javascript
+      $settings['ui_settings']['animation'] = variable_get('c_fields_animation_' . $type_name, C_FIELDS_ANIMATION_NO);
+      $settings['ui_settings']['anim_speed'] = variable_get('c_fields_anim_speed_' . $type_name, "normal");
       conditional_fields_add_js($settings);
       break;
   }
@@ -807,21 +845,19 @@ function conditional_fields_node_type($op, $info) {
  */
 function conditional_fields_node_type_update($info) {
   if ($info->type != $info->old_type) {
-    db_query("UPDATE {conditional_fields} SET type = '%s' WHERE type ='%s'", $info->type, $info->old_type);
+    db_query("UPDATE {conditional_fields} SET type = '%s' WHERE type ='%s'", $info->type, $info->old_type);  
+
+    // Update variables
+    db_query("UPDATE {variable} SET name = 'c_fields_js_%s' WHERE name ='c_fields_js_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_animation_%s' WHERE name ='c_fields_animation_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_anim_speed_%s' WHERE name ='c_fields_anim_speed_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_show_all_%s' WHERE name ='c_fields_show_all_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_view_%s' WHERE name ='c_fields_view_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_edit_%s' WHERE name ='c_fields_edit_%s'", $info->type, $info->old_type);  
+    cache_clear_all('variables', 'cache');
+
+    drupal_set_message(t('Conditional Fields settings have been updated.'));
   }
-  
-  // Update variables
-  variable_set('c_fields_js_' . $info->type, variable_get('c_fields_js_' . $info->old_type, 1));
-  variable_set('c_fields_show_all_' . $info->type, variable_get('c_fields_show_all_' . $info->old_type, 0));
-  variable_set('c_fields_show_all_' . $info->type, variable_get('c_fields_show_all_' . $info->old_type, 0));
-  variable_set('c_fields_view_' . $info->type, variable_get('c_fields_view_' . $info->old_type, C_FIELDS_ORPHANED_SHOW_TRIGGERED));
-  variable_set('c_fields_edit_' . $info->type, variable_get('c_fields_edit_' . $info->old_type, C_FIELDS_ORPHANED_SHOW_TRIGGERED));
-
-  variable_del('c_fields_js_' . $info->old_type);  
-  variable_del('c_fields_show_all_' . $info->old_type);
-  variable_del('c_fields_view_' . $info->old_type);
-  variable_del('c_fields_edit_' . $info->old_type);
-
 }
 
 /**
@@ -830,11 +866,9 @@ function conditional_fields_node_type_update($info) {
 function conditional_fields_node_type_delete($type) {
   db_query("DELETE FROM {conditional_fields} WHERE type = '%s'", $type);
 
-  // Delete variables
-  variable_del('c_fields_js_' . $type);
-  variable_del('c_fields_show_all_' . $type);
-  variable_del('c_fields_view_' . $type);
-  variable_del('c_fields_edit_' . $type);
+  // Delete all the conditional fields variables and then clear the variable cache  
+  db_query("DELETE FROM {variable} WHERE name LIKE 'c_fields_%'");
+  cache_clear_all('variables', 'cache');
 }
 
 
