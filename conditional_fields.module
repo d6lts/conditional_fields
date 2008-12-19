@@ -360,7 +360,7 @@ function conditional_fields_content_admin_field(&$form) {
  * Alteration of the fieldgroup editing form
  */
 function conditional_fields_fieldgroup_group_edit_form(&$form) {
-  if (!user_access('edit conditional fields')) {
+  if (!user_access('administer conditional fields')) {
     return;
   }
   
