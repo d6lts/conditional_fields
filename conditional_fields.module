@@ -274,7 +274,10 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'] = $form['#submit'] + array('_conditional_fields_fieldgroup_remove_group_submit' => array('group_name' => arg(5)));
       break;
     case $form['type']['#value'] . '_node_form':
-      conditional_fields_node_editing_form($form);
+      // When previewing, the form is called twice, and this is bad for drupal_add_js. See issue #325448, comment 11
+      if ($form_state['submitted'] == FALSE && empty($form_state['post']) || $form_state['submitted'] == TRUE && $form_state['node_preview']) {
+        conditional_fields_node_editing_form($form);
+      }
       break;
   }
 }
@@ -521,7 +524,7 @@ function conditional_fields_node_editing_form(&$form) {
       // Do nothing: the default behavior is ok
       break;
   }
-  
+
   // We build a javascript variable:
   // - 'controlling_fields' -> An object contaninig all ids of controlling fields, with their controlled fields and groups
   // To do: look if we should make this themeable
@@ -994,7 +997,7 @@ function theme_conditional_fields_manage_marker($label = 'conditional') {
  * form_clean_id in Drupal 6 adds a unique ID check, which messes things up here
  * Since fields have unique names anyway, we can safely use this wrapper (I hope).
  */
-function conditional_fields_form_clean_id($id = NULL, $flush = FALSE) {
+function conditional_fields_form_clean_id($id) {
   $id = str_replace(array('][', '_', ' '), '-', $id);
   return $id;
 }
