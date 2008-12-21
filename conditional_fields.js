@@ -27,11 +27,11 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
         }
         else {
           switch (Drupal.settings.ConditionalFields.ui_settings.animation) {
-            case "0":
+            case 0:
               toSwitch.hide();
-            case "1":
+            case 1:
               toSwitch.slideUp(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
-            case "2":
+            case 2:
               toSwitch.fadeOut(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
           }
         }
@@ -52,11 +52,11 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
             }
             else {
               switch (Drupal.settings.ConditionalFields.ui_settings.animation) {
-                case "0":
+                case 0:
                   toSwitch.show();
-                case "1":
+                case 1:
                   toSwitch.slideDown(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
-                case "2":
+                case 2:
                   toSwitch.fadeIn(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
               }
             }
