@@ -547,9 +547,12 @@ function conditional_fields_node_editing_form(&$form) {
   foreach (element_children($form) as $element) {
     // Fields
     if (substr($element, 0, 6) == 'field_') {
+      if ($form[$element]['#theme'] == 'content_multiple_values') {
+        $form[$element]['#conditional_fields_multiple'] = TRUE;
+      }
       if ($controlling_fields[$element]) {
         $form[$element]['#controlling_field'] = $element;
-        $form[$element]['#theme'] = 'conditional_fields_form_item';
+        $form[$element]['#theme'] = array('conditional_fields_form_item');
       }
       else if ($controlled_fields[$element]) {
         if ($form[$element]['#required']) {
@@ -557,7 +560,7 @@ function conditional_fields_node_editing_form(&$form) {
           $required_fields[$element] = array('field' => $element);
         }
         $form[$element]['#controlled_field'] = $element;
-        $form[$element]['#theme'] = 'conditional_fields_form_item';
+        $form[$element]['#theme'] = array('conditional_fields_form_item');
       }
     }
     else if (substr($element, 0, 6) == 'group_') {
@@ -569,6 +572,9 @@ function conditional_fields_node_editing_form(&$form) {
       }
       // Fields in groups
       foreach (element_children($form[$element]) as $group_element) {
+        if ($form[$element][$group_element]['#theme'] == 'content_multiple_values') {
+          $form[$element][$group_element]['#conditional_fields_multiple'] = TRUE;
+        }
         if ($controlled_fields[$element] || $controlled_fields[$group_element]) {
           if (conditional_fields_unset_required_field($form[$element][$group_element])) {
             $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $element);
@@ -576,11 +582,11 @@ function conditional_fields_node_editing_form(&$form) {
         }
         if ($controlling_fields[$group_element]) {
           $form[$element][$group_element]['#controlling_field'] = $group_element;
-          $form[$element][$group_element]['#theme'] = 'conditional_fields_form_item';
+          $form[$element][$group_element]['#theme'] = array('conditional_fields_form_item');
         }
         else if ($controlled_fields[$group_element]) {
           $form[$element][$group_element]['#controlled_field'] = $group_element;
-          $form[$element][$group_element]['#theme'] = 'conditional_fields_form_item';
+          $form[$element][$group_element]['#theme'] = array('conditional_fields_form_item');
         }
       }          
     }
@@ -929,7 +935,7 @@ function conditional_fields_allowed_values($field) {
 function conditional_fields_theme() {
     return array(
         'conditional_fields_form_item' => array(
-            'arguments' => array('item' => NULL),
+            'arguments' => array(),
         ),
         'conditional_fields_manage_marker' => array(
             'arguments' => array('label' => NULL),
@@ -943,27 +949,28 @@ function conditional_fields_theme() {
  * you have to modify conditional_fields.js accordingly.
  */
 function theme_conditional_fields_form_item($item) {
-   if ($id = $item['#controlling_field']) {
-     $output = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlling-field">' . drupal_render($item) . '</div>';
-   }
-   else if ($id = $item['#controlled_field']) {
-     if ($item['#required_field']) {
-       $item = conditional_fields_set_required_field($item);
-     }
-     if ($item['#type'] == 'markup') {
-       /* Avoid unnecessary divs in multiple fields */
-       $item['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">';
-       $item['#suffix'] = '</div>';
-       $output = drupal_render($item); 
-     }
-     else {
-       $output = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . drupal_render($item) . '</div>';
-     }
-   }
-   else {
-     $output = drupal_render($item); 
-   }
-   return $output;
+  if ($id = $item['#controlling_field']) {
+    return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlling-field">' . drupal_render($item) . '</div>';
+  }
+  else if ($id = $item['#controlled_field']) {
+    if ($item['#required_field']) {
+      $item = conditional_fields_set_required_field($item);
+    }
+    if ($item['#type'] == 'markup') {
+      /* Manage ahah multiple fields */
+      if ($item['#conditional_fields_multiple']) {
+        return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . theme('content_multiple_values', $item) . '</div>';
+      }
+      /* Avoid unnecessary divs in other kinds of fields */
+      $item['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">';
+      $item['#suffix'] = '</div>';
+      return drupal_render($item); 
+    }
+    /* Normal fields */
+    else {
+      return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . drupal_render($item) . '</div>';
+    }
+  }
 }
 
 /**

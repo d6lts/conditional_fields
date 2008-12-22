@@ -10,11 +10,9 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
     if (controllingField == id) {
       /* Find the settings of the controlled field */
       $.each(controlledFields, function(i, fieldSettings) {
-        /* Multiple fields are enclosed in fieldsets */
-        var parentTag = $(fieldSettings.field_id).parent().get(0).tagName;
-        var parentId = $(fieldSettings.field_id).parent().attr('class');
-        if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
-          var toSwitch = $(fieldSettings.field_id).parent();
+        /* Multiple fields are enclosed in a wrapper */
+        if ($(fieldSettings.field_id).parents("#" + fieldSettings.field_id.substring(13) + "-add-more-wrapper").length == 1) {
+          var toSwitch = $("#" + fieldSettings.field_id.substring(13) + "-add-more-wrapper");
         } else {
           var toSwitch = $(fieldSettings.field_id);
         }
@@ -39,8 +37,8 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
         /* Find the trigger values of the controlled field (for this controlling field) */
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (jQuery.inArray(val, values) != -1) {
-            if (parentTag == 'FIELDSET' && parentId.indexOf("group-") != 0) {
-              var toSwitch = $(fieldSettings.field_id).parent();
+            if ($(fieldSettings.field_id).parents("#" + fieldSettings.field_id.substring(13) + "-add-more-wrapper").length == 1) {
+              var toSwitch = $("#" + fieldSettings.field_id.substring(13) + "-add-more-wrapper");
             } else {
               var toSwitch = $(fieldSettings.field_id);
             }
