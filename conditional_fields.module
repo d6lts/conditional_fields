@@ -30,11 +30,11 @@ function conditional_fields_menu() {
   
   foreach (node_get_types() as $type) {
     $content_type = content_types($type->type);
-  
+
     $items['admin/content/node-type/' . $content_type['url_str'] . '/conditional'] = array(
       'title' => 'Conditional fields',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('_conditional_fields_admin', $type_name),
+      'page arguments' => array('_conditional_fields_admin', $content_type['name']),
       'access arguments' => array('administer conditional fields'),
       'type' => MENU_LOCAL_TASK,
       'weight' => 5
@@ -56,7 +56,7 @@ function conditional_fields_perm() {
  */
 function _conditional_fields_admin($form, $type) {
   $form = array();
-  
+
   $form['js_set'] = array(
     '#type' => 'fieldset',
     '#title' => t('User Interface options'),
@@ -173,18 +173,15 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
       return;
     }
     
-    $orphaned_settings = variable_get('c_fields_view_' . $node->type, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
-    
-    // We might have to look for fields in a group
-    if (module_exists('fieldgroup')) {
-      $groups = fieldgroup_groups($node->type);
-    }
-    
     foreach ($data as $field) {
-      if ($groups) {
-        $controlled_group = fieldgroup_get_group($node->type, $field['field_name']);
-        $controlling_group = fieldgroup_get_group($node->type, $field['control_field_name']);
+      // If either field is not viewed for other reasons, skip this set.
+      if (!$node->$field['field_name'] || !$node->$field['control_field_name']) {
+        continue;
       }
+      
+      // We might have to look for the field in a group
+      $controlled_group = conditional_fields_get_group($node->type, $field['field_name']);
+      $controlling_group = conditional_fields_get_group($node->type, $field['control_field_name']);
       
       // Create an array with the selected controlling field's values      
       // Check if the controlling field is viewed as well
@@ -209,8 +206,9 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
           }
         }
       }
-      else {
+      else if ($node->$field['field_name']) {
         // Apply orphaned fields settings
+        $orphaned_settings = variable_get('c_fields_view_' . $node->type, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
         switch ($orphaned_settings) {
           case C_FIELDS_ORPHANED_SHOW_TRIGGERED:
             // If the field was triggered, don't hide it
@@ -256,9 +254,9 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'] = $form['#submit'] + array('_conditional_fields_fieldgroup_remove_group_submit' => array('group_name' => arg(5)));
       break;
     case $form['type']['#value'] . '_node_form':
-      // When previewing, the form is called twice, and this is bad for drupal_add_js. See issue #325448, comment 11
-      if ($form_state['submitted'] == FALSE && empty($form_state['post']) || $form_state['submitted'] == TRUE && $form_state['node_preview']) {
-        conditional_fields_node_editing_form($form);
+      // When previewing, the form is sometimes called twice, and this is bad for drupal_add_js. See issue #350411
+      if (($form_state['submitted'] == FALSE && empty($form_state['post'])) || $form_state['node_preview']) {
+        conditional_fields_node_editing_form($form, $form_state);
       }
       break;
   }
@@ -464,7 +462,7 @@ function conditional_fields_forms_submit($form, &$form_state) {
 /**
  * Alteration of the node editing form
  */
-function conditional_fields_node_editing_form(&$form) {
+function conditional_fields_node_editing_form(&$form, $form_state) {
   $type_name = $form['type']['#value'];
   
   // Do nothing if there are no conditional fields
@@ -472,39 +470,63 @@ function conditional_fields_node_editing_form(&$form) {
     return;
   }
   
-  // Apply oprhaned fields settings
-  switch (variable_get('c_fields_edit_' . $type_name, C_FIELDS_ORPHANED_SHOW_TRIGGERED)) {
-    case C_FIELDS_ORPHANED_SHOW_TRIGGERED:
-      // We will only hide untriggered fields
-      $show_triggered = TRUE;
-    case C_FIELDS_ORPHANED_HIDE:
-      // Hide controlled fields whose controlling field is not present
-      foreach ($data as $field) {
+  // Remove from data fields that user can't edit
+  // and apply orphaned fields settings
+  $orphaned_settings = variable_get('c_fields_edit_' . $type_name, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
+  foreach ($data as $key => $field) {
+    // Store group name or FALSE if no group
+    $field['in_group'] = conditional_fields_get_group($type_name, $field['field_name']);
+
+    // First check access
+    if ((!$field['in_group'] && $form[$field['field_name']]['#access'] === FALSE) ||
+        ($field['in_group'] && $form[$field['in_group']][$field['field_name']]['#access'] == FALSE)) {
+      unset($data[$key]);
+      continue;
+    }
+
+    // Check if controlling field is present. If not, apply orphaned fields settings
+    $show_triggered = FALSE;
+    switch ($orphaned_settings) {
+      case C_FIELDS_ORPHANED_SHOW_TRIGGERED:
+        // We will only hide untriggered fields
+        // E.g.: fields whose controlling fields have a triggering default value
+        // or a triggering value set by other users with permissions
+        $show_triggered = TRUE;
+      case C_FIELDS_ORPHANED_HIDE:
         // Check if the controlling field is in a group
-        if (module_exists('fieldgroup')) {
-          $group = fieldgroup_get_group($type_name, $field['control_field_name']);
-        }
+        $field['control_field_in_group'] = conditional_fields_get_group($type_name, $field['control_field_name']);
         // Check if the controlling field is in form
         // If not, unset controlled field
-        if ($group) {
-          if (!$form[$group][$field['control_field_name']]  || $form[$group][$field['control_field_name']]['#type'] == 'markup') {
-            if (!$show_triggered || !in_array($form['#node']->{$field['control_field_name']}[0]['value'], $field['trigger_values'])) {
-              unset($form[$group][$field['field_name']]);
+        if ($field['control_field_in_group']) {
+          if (!$form[$field['control_field_in_group']][$field['control_field_name']]  || 
+               $form[$field['control_field_in_group']][$field['control_field_name']]['#type'] == 'markup' || 
+               $form[$field['control_field_in_group']][$field['control_field_name']]['#access'] == FALSE) {
+            if (!$show_triggered || !in_array($form_state['values'][$field['control_field_name']][0]['value'], $field['trigger_values'])) {
+              unset($form[$field['control_field_in_group']][$field['field_name']]);
+              unset($data[$key]);
             }
           }
         }
-        else if ($group == FALSE) {
-          if (!$form[$field['control_field_name']] || $form[$field['control_field_name']]['#type'] == 'markup') {
-            if (!$show_triggered || !in_array($form['#node']->{$field['control_field_name']}[0]['value'], $field['trigger_values'])) {
+        else {
+          if (!$form[$field['control_field_name']] || 
+               $form[$field['control_field_name']]['#type'] == 'markup' ||
+               $form[$field['control_field_name']]['#access'] == FALSE) {
+            if (!$show_triggered || !in_array($form_state['values'][$field['control_field_name']][0]['value'], $field['trigger_values'])) {
               unset($form[$field['field_name']]);
+              unset($data[$key]);
             }
           }
         }
-      }
-      break;
-    case C_FIELDS_ORPHANED_SHOW_ALL:
-      // Do nothing: the default behavior is ok
-      break;
+        break;
+      case C_FIELDS_ORPHANED_SHOW_ALL:
+        // Do nothing: the default behavior is ok
+        break;
+    }
+  }
+  
+  // Data could be empty by now
+  if (empty($data)) {
+    return;
   }
 
   // We build a javascript variable:
@@ -582,22 +604,35 @@ function conditional_fields_node_editing_form(&$form) {
   switch ($ui_settings) {
     case C_FIELDS_JS_DISABLE:
       $settings['ui_settings'] = 'disable';
-      conditional_fields_add_js($settings);
       break;
     case C_FIELDS_JS_HIDE:
       $settings['ui_settings']['animation'] = (int)variable_get('c_fields_animation_' . $type_name, C_FIELDS_ANIMATION_NO);
       $settings['ui_settings']['anim_speed'] = variable_get('c_fields_anim_speed_' . $type_name, "normal");
-      conditional_fields_add_js($settings);
       break;
   }
-
+  
+  // When previewing we need to add js from validation, otherwise we risk to add it twice
+  if ($ui_settings != C_FIELDS_JS_NO && !$form_state['node_preview']) {
+    conditional_fields_add_js($settings);    
+  }
+  
   // Pass variables for validation
   $form['#conditional_fields']['data'] = $data;
   $form['#conditional_fields']['required_fields'] = $required_fields;
   $form['#conditional_fields']['settings'] = $settings;
 
-  // Add extra validation funcion
+  // Add extra validation function
   $form['#validate'] = array_merge(array('conditional_fields_node_editing_form_validate'), (array)$form['#validate']);
+}
+
+/**
+ * Get the fieldgroup of a field
+ */
+function conditional_fields_get_group($type_name, $field_name) {
+  if (!module_exists('fieldgroup')) {
+    return FALSE;
+  }
+  return fieldgroup_get_group($type_name, $field_name);
 }
 
 /**
@@ -617,9 +652,8 @@ function conditional_fields_unset_required_field(&$field) {
  * Validation for node editing form.
  */
 function conditional_fields_node_editing_form_validate($form, $form_state) {
-  
-  // When previewing, hook_form_alter is not called, so we need to add js here too
-  if ($form['#conditional_fields']['settings']['ui_settings']) {
+  // When previewing we need to add js here, otherwise we risk to add it twice
+  if ($form['#conditional_fields']['settings']['ui_settings'] && $form_state['values']['op'] == $form_state['values']['preview']) {
     conditional_fields_add_js($form['#conditional_fields']['settings']);
   }
 
