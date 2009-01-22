@@ -891,7 +891,8 @@ function conditional_fields_node_type($op, $info) {
  * Update conditional fields to a new type name
  */
 function conditional_fields_node_type_update($info) {
-  if ($info->type != $info->old_type) {
+  if (isset($info->old_type) && $info->type != $info->old_type) {
+    
     db_query("UPDATE {conditional_fields} SET type = '%s' WHERE type ='%s'", $info->type, $info->old_type);  
 
     // Update variables
@@ -902,8 +903,6 @@ function conditional_fields_node_type_update($info) {
     db_query("UPDATE {variable} SET name = 'c_fields_view_%s' WHERE name ='c_fields_view_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_edit_%s' WHERE name ='c_fields_edit_%s'", $info->type, $info->old_type);  
     cache_clear_all('variables', 'cache');
-
-    drupal_set_message(t('Conditional Fields settings have been updated.'));
   }
 }
 
