@@ -34,7 +34,7 @@ function conditional_fields_menu() {
     $items['admin/content/node-type/' . $content_type['url_str'] . '/conditional'] = array(
       'title' => 'Conditional fields',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('_conditional_fields_admin', $content_type['name']),
+      'page arguments' => array('_conditional_fields_admin', $content_type['type']),
       'access arguments' => array('administer conditional fields'),
       'type' => MENU_LOCAL_TASK,
       'weight' => 5
@@ -135,6 +135,7 @@ function _conditional_fields_admin($form, $type) {
     '#type' => 'submit',
     '#value' => t('Save'),
   );
+  
   return $form;
 }
 
