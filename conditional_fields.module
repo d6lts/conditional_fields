@@ -375,7 +375,7 @@ function _conditional_fields_build_form($type, $form, $control_field, $controlle
   if (!$description) {
     $description = t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with Allowed values set, are available for control', array('@context' => t($op))) . $description;
   }
-  
+    
   $form['conditional_fields'] = array(
     '#type' => 'fieldset',
     '#title' => t('Conditional fields settings'),
@@ -388,11 +388,21 @@ function _conditional_fields_build_form($type, $form, $control_field, $controlle
   );
   
   if (empty($controlled_fields)) {  // Disallow nested conditional fields
-    $default_values = conditional_fields_default_values($control_field, $available_fields);
-    // Create selection lists
     
+    $default_values = conditional_fields_default_values($control_field, $available_fields);
+    
+    // Create selection lists
     foreach ($available_fields as $field) {
       $allowed_values[$field['field_name']] = array('conditional_field_no_value' => t('- Not controlling -')) + $allowed_values[$field['field_name']];
+      
+      if (isset($default_values[$field['field_name']]) && $default_values[$field['field_name']] != FALSE) {
+        $default_value = $default_values[$field['field_name']];
+        $set = TRUE;
+      }
+      else {
+        $default_value = 'conditional_field_no_value';
+      }
+      
       $form['conditional_fields'][$field['field_name']] = array(
         '#type' => 'select',
         '#multiple' => TRUE,
@@ -400,10 +410,15 @@ function _conditional_fields_build_form($type, $form, $control_field, $controlle
         // To do: set right url for groups
         '#description' => t('<a href="@edit-field">Edit the allowed values</a> of the %field-name field.', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field['field_name'], array('query' => 'destination=admin/content/node-type/' . arg(3) . '/' . arg(4) . '/' . arg(5), 'fragment' => 'edit-allowed-values')), '%field-name' => t($field['widget']['label'])) ),
         '#options' => $allowed_values[$field['field_name']],
-        '#default_value' => isset($default_values[$field['field_name']]) && $default_values[$field['field_name']] != FALSE ? $default_values[$field['field_name']] : 'conditional_field_no_value',
+        '#default_value' => $default_value,
       );
+      
     }
     
+    // Don't collapse the settings if we already have a configuration
+    if ($set) {
+      $form['conditional_fields']['#collapsed'] = FALSE;
+    }
   }
   
   return $form;
