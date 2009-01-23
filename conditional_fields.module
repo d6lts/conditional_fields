@@ -767,36 +767,35 @@ function conditional_fields_load_data($type, $structure = 'row', $reset = FALSE)
  */
 function conditional_fields_field_overview_form(&$form) {
   // Check if we have conditional data
-  if (!$data = conditional_fields_load_data($form['#type_name'], 'flat')) {
+  if (!$data = conditional_fields_load_data($form['#type_name'])) {
     return;
   }
-
-  // Mark fields
-  foreach ($form['#fields'] as $field_name) {
-    if ($data[$field_name]) {
-      $form[$field_name]['label']['#value'] .= theme('conditional_fields_manage_marker');
-    }
-  }
-
-  // Mark groups
-  foreach ($form['#groups'] as $group_name) {
-    if ($data[$group_name]) {
-      $form[$group_name]['label']['#value'] .= theme('conditional_fields_manage_marker');
-    }
-  }
   
-  // Add validation funcion
-  $form['#conditional_fields'] = $data;
-  $form['#validate'] = array_merge(array('conditional_fields_field_overview_form_validate'), $form['#validate']);
+  foreach ($data as $field) {
+    if (in_array($field['control_field_name'], $form['#fields'])) {
+      $form[$field['control_field_name']]['field_name']['#value'] .= theme('conditional_fields_manage_marker', NULL, $field['field_name']);
+    }
+    if (in_array($field['field_name'], $form['#fields'])) {
+      $form[$field['field_name']]['field_name']['#value'] .= theme('conditional_fields_manage_marker', $field['control_field_name'], NULL);
+    }
+    // Mark groups
+    if (in_array($field['field_name'], $form['#groups'])) {
+      $form[$field['field_name']]['group_name']['#value'] .= theme('conditional_fields_manage_marker', $field['control_field_name'], NULL);
+    }
+  }
 
+  // Add validation funcion
+  $form['#validate'] = array_merge(array('conditional_fields_field_overview_form_validate'), $form['#validate']);
 }
 
 /**
  * Conditional fields can't change group.
  */
 function conditional_fields_field_overview_form_validate($form, $form_state) {
+  $data = conditional_fields_load_data($form['#type_name'], 'flat');
+
   foreach ($form['#fields'] as $field_name) {
-    if ($form['#conditional_fields'][$field_name] && $form_state['values'][$field_name]['parent'] != $form_state['values'][$field_name]['prev_parent']) {
+    if ($data[$field_name] && $form_state['values'][$field_name]['parent'] != $form_state['values'][$field_name]['prev_parent']) {
       form_set_error('', t("You can't change the parent group of a conditional field."));
     }
   }
@@ -847,8 +846,8 @@ function conditional_fields_default_values($control_field, $conditional_fields) 
  * Adds javascript to the node editing form
  */
 function conditional_fields_add_js($settings) {
-  drupal_add_js(array('ConditionalFields' => $settings), 'setting', 'header', FALSE, TRUE, FALSE);
-  drupal_add_js(drupal_get_path('module', 'conditional_fields') . '/conditional_fields.js', 'module', 'header', FALSE, TRUE, FALSE);
+  drupal_add_js(array('ConditionalFields' => $settings), 'setting');
+  drupal_add_js(drupal_get_path('module', 'conditional_fields') . '/conditional_fields.js');
 }
 
 /*
@@ -963,7 +962,7 @@ function conditional_fields_theme() {
             'arguments' => array(),
         ),
         'conditional_fields_manage_marker' => array(
-            'arguments' => array('label' => NULL),
+            'arguments' => array('controlling' => NULL, 'controlled' => NULL),
         ),
     );
 }
@@ -1021,8 +1020,15 @@ function conditional_fields_set_required_field_recurse(&$item) {
 /**
  * Themes a conditional field marker in 'Manage fields'.
  */
-function theme_conditional_fields_manage_marker($label = 'conditional') {
-  return ' <span class="marker">' . t($label) . '</span>';
+function theme_conditional_fields_manage_marker($controlling = NULL, $controlled = NULL) {
+  $output = '';
+  if ($controlling) {
+    $output .= t('<div class="description">Controlled by <em>@controlling</em></div>', array('@controlling' => $controlling));
+  }
+  if ($controlled) {
+    $output .= t('<div class="description">Controlling <em>@controlled</em></div>', array('@controlled' => $controlled)); 
+  }
+  return $output;
 }
 
 /**
