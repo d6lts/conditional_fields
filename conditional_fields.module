@@ -942,6 +942,14 @@ function conditional_fields_node_type_delete($type) {
   variable_del('c_fields_edit_' . $type);
 }
 
+/**
+ * Handle deletion of fields
+ */
+function conditional_fields_content_fieldapi($ops, $field) {
+  if ($ops == 'delete instance') {
+    db_query("DELETE FROM {conditional_fields} WHERE type = '%s' AND (control_field_name = '%s' OR field_name = '%s')", $field['type_name'], $field['field_name'], $field['field_name']);
+  }
+}
 
 /**
  *  Create an array of the allowed values for a field
