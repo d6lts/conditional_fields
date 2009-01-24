@@ -7,7 +7,7 @@ A Drupal module
 
 Author:
 --------------------
-Gregorio Magini (peterpoe) <gmagini@gmail.com>
+Gregorio Magini (peterpoe) <gmagini@gmail.com> - http://www.wikirandom.org
 Initially inspired by the Explainfield module -> http://drupal.org/project/explainfield
 
 
@@ -33,28 +33,41 @@ Installation:
 --------------------
 - Copy the unpacked folder "conditional_fields" in drupal/sites/all
 - Go to the modules administration page (admin/build/modules) and activate it (it’s in the CCK package)
-
+- Assign the "Administer conditional fields" permission to the desired user roles.
 
 Usage:
 --------------------
-Once the module is activated, a new set of options will appear in the field editing form, from where you can select which of the allowed values available will make the field "controlled". If no value is selected, the field will be shown as usual.
-There is a "Conditional fields" tab in the content type admin page with the following options:
-- User Interface options. You can decide if you want to use javascript to dynamically disable or hide the fields when editing a node. There are some animation options too.
-- Orphaned controlled fields settings. These settings control the visibility (on node view) and editability (on node edit) of controlled fields when the controlling fields are not visible (e.g.: set to 'Hidden' in the fields display settings) or not editable (e.g.: by an access control module).
-- Administrators see all fields. If checked, users with 'administer conditional fields' permission will see all controlled fields of a node, even if the weren't triggered.
-- Reset. If checked, all conditional fields configurations for this content type will be reset (though the fields themselves will remain untouched).
+Once the module is activated, a new set of options will appear in the field editing form, from where you can select which of the allowed values available will make the field "controlled". If "- Not controlling -" or no value is selected, the field will be shown as usual.
+
+There is a "Conditional fields" tab in every content type admin page with the following options:
+
+- User Interface options.
+  * Javascript: You can decide if you want to use javascript to dynamically disable (grey out) or hide the fields when editing a node.
+  * Animation: There are three animations currently available: show/hide (default), slide down/slide up, and fade in/fade out. You can also set the speed of the animation.
+
+- Orphaned controlled fields settings.
+  These settings control the visibility (on node view) and editability (on node edit) of controlled fields when the controlling fields are not visible (e.g.: set to 'Hidden' in the fields display settings) or not editable (e.g.: by an access control module).
+
+- Administrators see all fields.
+  If checked, users with 'administer conditional fields' permission will see all controlled fields of a node, even if the weren't triggered.
+
+- Reset. 
+  If checked, all conditional fields configurations for this content type will be reset (though the fields themselves will remain untouched).
 
 Limitations:
 --------------------
 - Each field or group can be controlled from only one field (though a field can control any number of fields and groups). This is a bug, and will be corrected in later develpment.
-- If the controlling field is in a group, it can only control fields form within the same group.
-- Currently works only with checkbox, select, and radio controlling fields (though controlled field can be of any type).
+- If the controlling field is in a group, it can only control or be controlled only by fields that are in the same group.
+- Currently works only with checkbox, select, and radio controlling fields. Controlled fields can be of any type.
 
 
 To Do:
 --------------------
 Any help is welcome!
 --------------------
+Check the issue queue of this module for more information:
+http://drupal.org/project/issues/conditional_fields
+
 Bug: multiple controlling fields on the same field don’t work
 Bug: when exporting/importing conditional fields, some trigger values are not saved
 Bug: some required fields are not correctly handled (e.g.: date)
