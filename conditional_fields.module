@@ -327,16 +327,16 @@ function conditional_fields_content_admin_field(&$form) {
     if (!empty($controlled_fields)) {
       foreach ($controlled_fields as $field => $trigger_values) {
         if (substr($field, 0, 6) == 'group_') { // It's a group
-          $rows[] = array($field, t('group'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/groups/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
+          $rows[] = array($field, implode($trigger_values, ', '), t('group'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/groups/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
         }
         else { // It's a field
-          $rows[] = array($field, t('field'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
+          $rows[] = array($field, implode($trigger_values, ', '), t('field'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
         }
       }
     }
     
     if ($rows) {
-      $description = t('<p>Below is a list of all fields and groups controlled by this field. If you want to make this field controllable, you have to clear the settings for each controlled field.</p>') . theme('table', array(t('Name'), t('Type'), t('Options')), $rows);
+      $description = t('<p>Below is a list of all fields and groups controlled by this field. If you want to make this field controllable, you have to clear the settings for each controlled field.</p>') . theme('table', array(t('Name'), t('Trigger values'), t('Type'), t('Options')), $rows);
     }
     else {
       // Add extra submission funcion
