@@ -232,7 +232,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
     }
   }
 }
-
+ 
 /**
  * Implementation of hook_form_alter()
  */
@@ -255,14 +255,11 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'] = $form['#submit'] + array('_conditional_fields_fieldgroup_remove_group_submit' => array('group_name' => arg(5)));
       break;
     case $form['type']['#value'] . '_node_form':
-      // When previewing, the form is sometimes called twice, and this is bad for drupal_add_js. See issue #350411
-      if (($form_state['submitted'] == FALSE && empty($form_state['post'])) || $form_state['node_preview']) {
-        conditional_fields_node_editing_form($form, $form_state);
-      }
+      conditional_fields_node_editing_form($form, $form_state);
       break;
   }
 }
-
+ 
 /**
  * Alteration of the field editing form
  */
@@ -626,9 +623,8 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
       $settings['ui_settings']['anim_speed'] = variable_get('c_fields_anim_speed_' . $type_name, "normal");
       break;
   }
-  
-  // When previewing we need to add js from validation, otherwise we risk to add it twice
-  if ($ui_settings != C_FIELDS_JS_NO && !$form_state['node_preview']) {
+
+  if ($ui_settings != C_FIELDS_JS_NO) {
     conditional_fields_add_js($settings);    
   }
   
@@ -668,8 +664,8 @@ function conditional_fields_unset_required_field(&$field) {
  * Validation for node editing form.
  */
 function conditional_fields_node_editing_form_validate($form, $form_state) {
-  // When previewing we need to add js here, otherwise we risk to add it twice
-  if ($form['#conditional_fields']['settings']['ui_settings'] && $form_state['values']['op'] == $form_state['values']['preview']) {
+  // When form fails validation, hook_form_alter is not called, so we add js here too
+  if ($form['#conditional_fields']['settings']['ui_settings']) {
     conditional_fields_add_js($form['#conditional_fields']['settings']);
   }
 
@@ -868,8 +864,13 @@ function conditional_fields_default_values($control_field, $conditional_fields) 
  * Adds javascript to the node editing form
  */
 function conditional_fields_add_js($settings) {
-  drupal_add_js(array('ConditionalFields' => $settings), 'setting');
-  drupal_add_js(drupal_get_path('module', 'conditional_fields') . '/conditional_fields.js');
+  // Avoid adding js twice when the node form has failed validation
+  static $js;
+  if (!$js) {
+    drupal_add_js(array('ConditionalFields' => $settings), 'setting');
+    drupal_add_js(drupal_get_path('module', 'conditional_fields') . '/conditional_fields.js');
+    $js = TRUE;
+  }
 }
 
 /*
