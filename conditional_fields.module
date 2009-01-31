@@ -257,6 +257,17 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
     case $form['type']['#value'] . '_node_form':
       conditional_fields_node_editing_form($form, $form_state);
       break;
+    case 'content_add_more_js':
+      // Handle ahah multiple fields
+      $key = array_keys($form);
+      if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE field_name = '%s'", $key[0]))) {
+        $form[$key[0]]['#prefix'] .= '<div id="conditional-' . conditional_fields_form_clean_id($key[0]) . '" class="conditional-field controlled-field">';
+        $form[$key[0]]['#suffix'] = $form[$key[0]]['#suffix'] . '</div>';
+        foreach (element_children($form[$key[0]]) as $element) {
+          conditional_fields_unset_required_field($form[$key[0]][$element]);
+        }
+      }
+      break;
   }
 }
  
