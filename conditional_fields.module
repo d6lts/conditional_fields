@@ -175,14 +175,17 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
     }
     
     foreach ($data as $field) {
-      // If either field is not viewed for other reasons, skip this set.
-      if (!$node->$field['field_name'] || !$node->$field['control_field_name']) {
-        continue;
-      }
       
       // We might have to look for the field in a group
       $controlled_group = conditional_fields_get_group($node->type, $field['field_name']);
       $controlling_group = conditional_fields_get_group($node->type, $field['control_field_name']);
+      
+      // If either field is not viewed for other reasons, skip this set.
+      if (($controlled_group && !$node->content[$controlled_group][$field['field_name']]) ||
+          ($controlling_group && !$node->content[$controlling_group][$field['control_field_name']]) ||
+          (!$node->content[$field['field_name']] || !$node->content[$field['control_field_name']])) {
+        continue;
+      }
       
       // Create an array with the selected controlling field's values      
       // Check if the controlling field is viewed as well
@@ -382,7 +385,7 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
  */
 function _conditional_fields_build_form($type, $form, $control_field, $controlled_fields, $available_fields, $allowed_values, $op, $description = NULL) {
   if (!$description) {
-    $description = t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with Allowed values set, are available for control', array('@context' => t($op))) . $description;
+    $description = t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => t($op))) . $description;
   }
     
   $form['conditional_fields'] = array(
