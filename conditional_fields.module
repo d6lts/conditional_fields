@@ -677,47 +677,77 @@ function conditional_fields_unset_required_field(&$field) {
 /**
  * Validation for node editing form.
  */
-function conditional_fields_node_editing_form_validate($form, $form_state) {
+function conditional_fields_node_editing_form_validate($form, &$form_state) {
   // When form fails validation, hook_form_alter is not called, so we add js here too
   if ($form['#conditional_fields']['settings']['ui_settings']) {
     conditional_fields_add_js($form['#conditional_fields']['settings']);
   }
 
-  $required_fields = $form['#conditional_fields']['required_fields'];
-
-  if (!empty($required_fields)) {
-    foreach ($form['#conditional_fields']['data'] as $row) {
+  foreach ($form['#conditional_fields']['data'] as $row) {
+    // Check if the controlling field was triggered
+    $triggered = conditional_fields_is_triggered($form_state['values'][$row['control_field_name']], $row['trigger_values']);
+    
+    $required_fields = $form['#conditional_fields']['required_fields'];
+    
+    // Controlled field
+    if (substr($row['field_name'], 0, 6) == 'field_') {
       
-      // Check if the controlling field was triggered
-      if (conditional_fields_is_triggered($form_state['values'][$row['control_field_name']], $row['trigger_values'])) {
+      if ($triggered) {
         
-        // Check if we have a controlled field or a controlled group
-        if ($required_fields[$row['field_name']] && substr($row['field_name'], 0, 6) == 'field_') {
+        // Check required
+        if (!empty($required_fields) && $required_fields[$row['field_name']]) {
           
           // Check if the controlled field is empty
           if (conditional_fields_check_empty($form_state['values'][$row['field_name']])) {
             
-            // Check whether the controlled field is in a group or not
+            // Check whether the controlled field is in a group or not and set error accordingly
             if (!isset($required_fields[$row['field_name']]['in_group'])) {
-              // Set error
-              form_error($form[$row['field_name']], t('!name field is required.', array('!name' => $form[$row['field_name']]['#title'])));
+              form_error($form[$row['field_name']], 
+                         t('!name field is required.', 
+                         array('!name' => $form[$row['field_name']]['#title'])));
             }
             else {
-              // Set error
-              form_error($form[$required_fields[$row['field_name']]['in_group']][$row['field_name']], t('!name field is required.', array('!name' => $form[$required_fields[$row['field_name']]['in_group']][$row['field_name']]['#title'])));
+              form_error($form[$required_fields[$row['field_name']]['in_group']][$row['field_name']], 
+                         t('!name field is required.', 
+                         array('!name' => $form[$required_fields[$row['field_name']]['in_group']][$row['field_name']]['#title'])));
             }
           }
         }
-        // It's a group
-        else if (substr($row['field_name'], 0, 6) == 'group_') {
+      }
+      else {
+        // Do not submit values of controlled fields which were not triggered (except on preview)
+        if (!in_array('node_form_build_preview', $form_state['submit_handlers'])) {
+          foreach ($form['#field_info'][$row['field_name']]['widget']['default_value'] as $delta => $value) {
+            $form_state['values'][$row['field_name']][$delta]['value'] = $value['value'];
+          }
+        }
+      }
+    }
+    
+    // Controlled group
+    else if (substr($row['field_name'], 0, 6) == 'group_') {
+      
+      foreach (element_children($form[$row['field_name']]) as $field_in_group) {
+        
+        // Check if the controlling field was triggered
+        if ($triggered) {
           
-          // Set error for all empty non controlled required fields inside the group
-          foreach (element_children($form[$row['field_name']]) as $field_in_group) {
-            
-            if ($required_fields[$field_in_group] 
-                 && !$form[$row['field_name']][$field_in_group]['#controlled_field']
-                 && conditional_fields_check_empty($form_state['values'][$field_in_group])) {
-              form_error($form[$row['field_name']][$field_in_group], t('!name field is required.', array('!name' => $form[$row['field_name']][$field_in_group]['#title'])));
+          // Check required
+          if (!empty($required_fields) 
+              && $required_fields[$field_in_group] 
+              && !$form[$row['field_name']][$field_in_group]['#controlled_field']
+              && conditional_fields_check_empty($form_state['values'][$field_in_group])) {
+                
+            form_error($form[$row['field_name']][$field_in_group], 
+                       t('!name field is required.', 
+                       array('!name' => $form[$row['field_name']][$field_in_group]['#title'])));
+          }
+        }
+        else {
+          // Do not submit values of controlled fields which were not triggered (except on preview)
+          if (!in_array('node_form_build_preview', $form_state['submit_handlers'])) {
+            foreach ($form['#field_info'][$field_in_group]['widget']['default_value'] as $delta => $value) {
+              $form_state['values'][$field_in_group][$delta]['value'] = $value['value'];
             }
           }
         }
