@@ -180,10 +180,23 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
       $controlled_group = conditional_fields_get_group($node->type, $field['field_name']);
       $controlling_group = conditional_fields_get_group($node->type, $field['control_field_name']);
       
-      // If either field is not viewed for other reasons, skip this set.
-      if (($controlled_group && !$node->content[$controlled_group][$field['field_name']]) ||
-          ($controlling_group && !$node->content[$controlling_group][$field['control_field_name']]) ||
-          (!$node->content[$field['field_name']] || !$node->content[$field['control_field_name']])) {
+      // The controlled field is not in a group and is not viewed for other reasons. Skip.
+      if (!$controlled_group && !$node->content[$field['field_name']]) {
+        continue;
+      }
+      
+      // The controlling field is not in a group and is not viewed for other reasons. Skip.
+      if (!$controlling_group && !$node->content[$field['control_field_name']]) {
+        continue;
+      }
+      
+      // The controlled field is in a group and is not viewed for other reasons. Skip.
+      if ($controlled_group && !$node->content[$controlled_group]['group'][$field['field_name']]) {
+        continue;
+      }
+
+      // The controlling field is in a group and is not viewed for other reasons. Skip.
+      if ($controlling_group && !$node->content[$controlling_group]['group'][$field['control_field_name']]) {
         continue;
       }
       
@@ -210,7 +223,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
           }
         }
       }
-      else if ($node->$field['field_name']) {
+      else if ($node-> content[$field['field_name']]) {
         // Apply orphaned fields settings
         $orphaned_settings = variable_get('c_fields_view_' . $node->type, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
         switch ($orphaned_settings) {
