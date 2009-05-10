@@ -59,7 +59,9 @@ Limitations:
 - Each field or group can be controlled from only one field (though a field can control any number of fields and groups). This is a bug, and will be corrected in later develpment.
 - If the controlling field is in a group, it can only control or be controlled only by fields that are in the same group.
 - Currently works only with checkbox, select, and radio controlling fields. Controlled fields can be of any type.
-
+- There are reported incompatibilities with the following modules:
+    * tinyMCE
+    * Multigroup
 
 To Do:
 --------------------
@@ -69,10 +71,8 @@ Check the issue queue of this module for more information:
 http://drupal.org/project/issues/conditional_fields
 
 Bug: multiple controlling fields on the same field don’t work
-Bug: when exporting/importing conditional fields, some trigger values are not saved
 Bug: some required fields are not correctly handled (e.g.: date)
 Testing: test different types of CCK fields for compatibility
-Feature: reset untriggered fields to their default state
 Feature: allow more kinds of controlling fields (e.g.: taxonomy)
 Feature: allow nested conditional fields
 Feature: views integration

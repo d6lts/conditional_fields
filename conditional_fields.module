@@ -223,7 +223,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
           }
         }
       }
-      else if ($node-> content[$field['field_name']]) {
+      else if ($node->content[$field['field_name']]) {
         // Apply orphaned fields settings
         $orphaned_settings = variable_get('c_fields_view_' . $node->type, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
         switch ($orphaned_settings) {
@@ -284,6 +284,9 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
         }
       }
       break;
+    case 'content_copy_import_form':
+      $form['#submit'][] = 'conditional_fields_import';
+      break;
   }
 }
  
@@ -291,6 +294,7 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
  * Alteration of the field editing form
  */
 function conditional_fields_content_admin_field(&$form) {
+  
   $type = array();
   $type = content_types($form['type_name']['#value']);
   
@@ -321,6 +325,10 @@ function conditional_fields_content_admin_field(&$form) {
     if ($field['field_name'] == $form['field_name']['#value']) {
       continue;
     }
+    // - AND of type: checkbox, radio, select
+    if ($field['widget']['type'] != 'optionwidgets_select' && $field['widget']['type'] != 'optionwidgets_buttons') {
+      continue;
+    }
     // - AND not controlled by this one
     if ($controlled_fields[$field['field_name']]) {
       continue;
@@ -332,7 +340,7 @@ function conditional_fields_content_admin_field(&$form) {
       }
     }
     // - AND with Allowed values
-    if (!$allowed_values[$field['field_name']] = conditional_fields_allowed_values($field)) {
+    if (!$allowed_values[$field['field_name']] = content_allowed_values($field)) {
       continue;
     }
     $available_fields[$field['field_name']] = $field;
@@ -376,7 +384,7 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
   foreach ($form['#content_type']['fields'] as $field) {
     $in_group = fieldgroup_get_group($form['#content_type']['type'], $field['field_name']);
     if (!$in_group) {
-      if ($allowed_values[$field['field_name']] = conditional_fields_allowed_values($field)) {
+      if ($allowed_values[$field['field_name']] = content_allowed_values($field)) {
         $available_fields[$field['field_name']] = $field;
       }
     }
@@ -463,7 +471,7 @@ function conditional_fields_content_admin_field_validate($form, &$form_state) {
   }
   else {
     // Warn user on allowed values change
-    if (!empty($form['#controlled_fields']) && $form_state['values']['allowed_values'] != $form_state['#field_info'][$form['values']['field_name']]['allowed_values']) {
+    if (!$GLOBALS['content_copy'] && !empty($form['#controlled_fields']) && $form_state['values']['allowed_values'] != $form_state['#field_info'][$form['values']['field_name']]['allowed_values']) {
       drupal_set_message(t('If you removed one or more allowed values from the field, you might have to edit its controlled Conditional fields and/or fieldgroups settings.'), 'error');
     }
   }
@@ -479,24 +487,7 @@ function conditional_fields_forms_submit($form, &$form_state) {
   isset($form_state['values']['field_name']) ? $controlled_field = $form_state['values']['field_name'] : $controlled_field = $form_state['values']['group_name'];
   isset($form['#field']['type_name']) ? $type = $form['#field']['type_name'] : $type = $form['#content_type']['type'];
   
-  foreach ($form_state['values']['conditional_fields'] as $controlling_field => $trigger_values) {
-    // If the row already exists
-    if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type))) {
-      // If no value is set, delete the entry, else update it
-      if (empty($trigger_values) || $trigger_values['conditional_field_no_value']) {
-        db_query("DELETE FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type);
-      }
-      else {
-        db_query("UPDATE {conditional_fields} SET trigger_values = '%s' WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", serialize($trigger_values), $controlling_field, $controlled_field, $type);
-      }
-    }
-    else {
-      // If values are set, create new entry
-      if (!empty($trigger_values) && !$trigger_values['conditional_field_no_value']) {
-        db_query("INSERT INTO {conditional_fields} (control_field_name, field_name, type, trigger_values) VALUES ('%s', '%s', '%s', '%s')", $controlling_field, $controlled_field, $type, serialize($trigger_values));
-      }
-    }    
-  }
+  conditional_fields_save_field($type, $controlled_field, $form_state['values']['conditional_fields']);
 }
 
 /**
@@ -672,19 +663,6 @@ function conditional_fields_get_group($type_name, $field_name) {
     return FALSE;
   }
   return fieldgroup_get_group($type_name, $field_name);
-}
-
-/**
- * Unset the #required property and set a #required_field property for internal use.
- */
-function conditional_fields_unset_required_field(&$field) {
-  if ($field['#required']) {
-    unset($field['#required']);
-    $field['#required_field'] = TRUE;
-  }
-  foreach (element_children($field) as $child) {
-    conditional_fields_unset_required_field($field[$child]);
-  }
 }
 
 /**
@@ -1001,45 +979,102 @@ function conditional_fields_node_type_delete($type) {
 }
 
 /**
- * Handle deletion of fields
+ * Implementation of hook_content_fieldapi
  */
 function conditional_fields_content_fieldapi($ops, $field) {
+  // Handle deletion of fields
   if ($ops == 'delete instance') {
     db_query("DELETE FROM {conditional_fields} WHERE type = '%s' AND (control_field_name = '%s' OR field_name = '%s')", $field['type_name'], $field['field_name'], $field['field_name']);
+  }
+  // Import conditional fields definitions with content_copy module
+  else if ($ops == 'create instance') {
+    if ($field['conditional_fields']) {
+      conditional_fields_save_field($field['type_name'], $field['field_name'], $field['conditional_fields']);
+    }
   }
 }
 
 /**
- *  Create an array of the allowed values for a field
+ * Handle saving of individual controlled field settings
+ * $controlling_fields is a keyed array of controlling fields names and trigger values
+ *
+ * Use this function with caution, as it doesn't check if the content type and the fields actually exist.
  */
-function conditional_fields_allowed_values($field) {
-  static $allowed_values;
-
-  if ($allowed_values[$field['field_name']]) {
-    return $allowed_values[$field['field_name']];
-  }
-
-  $allowed_values[$field['field_name']] = array();
-  if ($field['allowed_values_php']) {
-    ob_start();
-    $result = eval($field['allowed_values_php']);
-    if (is_array($result)) {
-      $allowed_values[$field['field_name']] = $result;
+function conditional_fields_save_field($type_name, $controlled_field, $controlling_fields) {
+   foreach ($controlling_fields as $controlling_field => $trigger_values) {
+    // If the row already exists
+    if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type_name))) {
+      // If no value is set, delete the entry, else update it
+      if (empty($trigger_values) || $trigger_values['conditional_field_no_value']) {
+        conditional_fields_delete_field($type_name, $controlled_field, $controlling_field);
+      }
+      else {
+        conditional_fields_update_field($type_name, $controlled_field, $controlling_field, $trigger_values);
+      }
     }
-    ob_end_clean();
-  }
-  if (!$allowed_values[$field['field_name']]) {
-
-    $list = explode("\n", $field['allowed_values']);
-    $list = array_map('trim', $list);
-    $list = array_filter($list, 'strlen');
-    foreach ($list as $opt) {
-      list($key, $value) = explode('|', $opt);
-      $allowed_values[$field['field_name']][$key] = $value ? $value : $key;
-    }
-  }
-  return $allowed_values[$field['field_name']];
+    else {
+      // If values are set, create new entry
+      if (!empty($trigger_values) && !$trigger_values['conditional_field_no_value']) {
+        conditional_fields_insert_field($type_name, $controlled_field, $controlling_field, $trigger_values);
+      }
+    }    
+  } 
 }
+
+/**
+ * Insert into database the data of a new conditional field
+ */
+function conditional_fields_insert_field($type_name, $controlled_field, $controlling_field, $trigger_values) {
+  db_query("INSERT INTO {conditional_fields} (control_field_name, field_name, type, trigger_values) VALUES ('%s', '%s', '%s', '%s')", $controlling_field, $controlled_field, $type_name, serialize($trigger_values));
+}
+
+/**
+ * Update an existing conditonal field's database data
+ */
+function conditional_fields_update_field($type_name, $controlled_field, $controlling_field, $trigger_values) {
+  db_query("UPDATE {conditional_fields} SET trigger_values = '%s' WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", serialize($trigger_values), $controlling_field, $controlled_field, $type_name);
+}
+
+/**
+ * Delete a conditonal field's database data
+ */
+function conditional_fields_delete_field($type_name, $controlled_field, $controlling_field) {
+  db_query("DELETE FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $controlling_field, $controlled_field, $type_name);
+}
+
+/**
+ * Wrapper for conditional_fields_set_required_field_recurse
+ */
+function conditional_fields_set_required_field($item) { 
+  conditional_fields_set_required_field_recurse($item);
+  return $item;
+};
+
+/**
+ * Recursive function to set required for all conditionally required fields.
+ * This causes Drupal to render conditionally required fields in a way that
+ * indicates they are required when visible.
+ */
+function conditional_fields_set_required_field_recurse(&$item) {
+   $item['#required'] = TRUE;
+   foreach (element_children($item) as $child) {
+     conditional_fields_set_required_field_recurse($item[$child]);
+   }
+}
+
+/**
+ * Unset the #required property and set a #required_field property for internal use.
+ */
+function conditional_fields_unset_required_field(&$field) {
+  if ($field['#required']) {
+    unset($field['#required']);
+    $field['#required_field'] = TRUE;
+  }
+  foreach (element_children($field) as $child) {
+    conditional_fields_unset_required_field($field[$child]);
+  }
+}
+
 
 /**
  * Implementation of hook_theme().
@@ -1086,26 +1121,6 @@ function theme_conditional_fields_form_item($item) {
   else {
     return drupal_render($item);
   }
-}
-
-/**
- * Wrapper for conditional_fields_set_required_field_recurse
- */
-function conditional_fields_set_required_field($item) { 
-  conditional_fields_set_required_field_recurse($item);
-  return $item;
-};
-
-/**
- * Recursive function to set required for all conditionally required fields.
- * This causes Drupal to render conditionally required fields in a way that
- * indicates they are required when visible.
- */
-function conditional_fields_set_required_field_recurse(&$item) {
-   $item['#required'] = TRUE;
-   foreach (element_children($item) as $child) {
-     conditional_fields_set_required_field_recurse($item[$child]);
-   }
 }
 
 /**
