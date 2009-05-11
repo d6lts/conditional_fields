@@ -255,7 +255,9 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
 function conditional_fields_form_alter(&$form, $form_state, $form_id) {
   switch ($form_id) {
     case 'content_field_edit_form':
-      conditional_fields_content_admin_field($form);
+      if ($form['widget'] && $form_state['post']['op'] != t('Change basic information')) {
+        conditional_fields_content_admin_field($form);
+      }
       break;
     case 'fieldgroup_group_edit_form':
       conditional_fields_fieldgroup_group_edit_form($form);
