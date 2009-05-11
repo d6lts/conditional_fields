@@ -606,7 +606,7 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
       // Fields in groups
       foreach (element_children($form[$element]) as $group_element) {
         // All required fields inside a conditional group must be handled by conditional fields
-        if ($controlled_fields[$element] && $form[$element][$group_element]['#required']) {
+        if ($controlled_fields[$group_element] && $form[$element][$group_element]['#required']) {
           conditional_fields_unset_required_field($form[$element][$group_element]);
           $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $element);
           $form[$element][$group_element]['#theme'] = array('conditional_fields_form_item');
