@@ -327,10 +327,6 @@ function conditional_fields_content_admin_field(&$form) {
     if ($field['field_name'] == $form['field_name']['#value']) {
       continue;
     }
-    // - AND of type: checkbox, radio, select
-    if ($field['widget']['type'] != 'optionwidgets_select' && $field['widget']['type'] != 'optionwidgets_buttons') {
-      continue;
-    }
     // - AND not controlled by this one
     if ($controlled_fields[$field['field_name']]) {
       continue;
