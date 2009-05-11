@@ -775,7 +775,7 @@ function conditional_fields_check_empty($field) {
 function conditional_fields_is_triggered($selected_values, $trigger_values) {
   foreach ((array)$selected_values as $values) {
     foreach ((array)$values as $value) {
-      if ($value && in_array($value, $trigger_values)) {
+      if (isset($value) && in_array($value, $trigger_values)) {
         return TRUE;
       }
     }
