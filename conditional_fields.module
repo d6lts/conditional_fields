@@ -270,7 +270,7 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
       $form['#submit'] = $form['#submit'] + array('_conditional_fields_content_admin_field_remove_submit' => array());
       break;
     case 'fieldgroup_remove_group':
-      $form['#submit'] = $form['#submit'] + array('_conditional_fields_fieldgroup_remove_group_submit' => array('group_name' => arg(5)));
+      $form['#submit'][] = 'conditional_fields_fieldgroup_remove_group_submit';
       break;
     case $form['type']['#value'] . '_node_form':
       conditional_fields_node_editing_form($form, $form_state);
@@ -916,8 +916,8 @@ function _conditional_fields_content_admin_field_remove_submit($form, $form_stat
 /*
  * Clean conditional fields settings pertaining to this removed group
  */
-function _conditional_fields_fieldgroup_remove_group_submit($form, $form_state, $group_name) {
-  conditional_fields_remove_field_settings($group_name);
+function conditional_fields_fieldgroup_remove_group_submit($form, $form_state) {
+  conditional_fields_remove_field_settings($form['#group_name']);
 }
 
 /*
