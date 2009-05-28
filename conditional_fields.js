@@ -37,7 +37,7 @@ Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPag
   if (Drupal.settings.ConditionalFields.ui_settings == 'disable') {
     var disabled = '';
     if (showOrHide == 'hide') {
-      disabled = '';
+      disabled = 'disabled';
     }
     toSwitch.find('textarea, input, select').attr('disabled', disabled);
   }
