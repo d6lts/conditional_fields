@@ -437,9 +437,9 @@ function _conditional_fields_build_form($type, $form, $control_field, $controlle
       $form['conditional_fields'][$field['field_name']] = array(
         '#type' => 'select',
         '#multiple' => TRUE,
-        '#title' => t($field['widget']['label']),
+        '#title' => t($field['widget']['label']) . ' (' . $field['field_name'] . ')',
         // To do: set right url for groups
-        '#description' => t('<a href="@edit-field">Edit the allowed values</a> of the %field-name field.', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field['field_name'], array('query' => 'destination=admin/content/node-type/' . arg(3) . '/' . arg(4) . '/' . arg(5), 'fragment' => 'edit-allowed-values')), '%field-name' => t($field['widget']['label'])) ),
+        '#description' => t('<a href="@edit-field">Edit the allowed values</a> of %field-name.', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field['field_name'], array('query' => 'destination=admin/content/node-type/' . arg(3) . '/' . arg(4) . '/' . arg(5), 'fragment' => 'edit-allowed-values')), '%field-name' => $field['field_name']) ),
         '#options' => $allowed_values[$field['field_name']],
         '#default_value' => $default_value,
       );
