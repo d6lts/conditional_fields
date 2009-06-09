@@ -196,38 +196,37 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
       $controlled_group = conditional_fields_get_group($node->type, $field['field_name']);
       $controlling_group = conditional_fields_get_group($node->type, $field['control_field_name']);
       
-      // The controlled field is not in a group and is not viewed for other reasons. Skip.
+      // The controlled field is not in a group and is not in the form for other reasons. Skip.
       if (!$controlled_group && !$node->content[$field['field_name']]) {
         continue;
       }
       
-      // The controlling field is not in a group and is not viewed for other reasons. Skip.
+      // The controlling field is not in a group and is not the form for other reasons. Skip.
       if (!$controlling_group && !$node->content[$field['control_field_name']]) {
         continue;
       }
       
-      // The controlled field is in a group and is not viewed for other reasons. Skip.
+      // The controlled field is in a group and is not the form for other reasons. Skip.
       if ($controlled_group && !$node->content[$controlled_group]['group'][$field['field_name']]) {
         continue;
       }
 
-      // The controlling field is in a group and is not viewed for other reasons. Skip.
+      // The controlling field is in a group and is not the form for other reasons. Skip.
       if ($controlling_group && !$node->content[$controlling_group]['group'][$field['control_field_name']]) {
         continue;
       }
       
+      $viewed = FALSE;
+      
       // Create an array with the selected controlling field's values      
       // Check if the controlling field is viewed as well
-      if (!$controlling_group && $node->content[$field['control_field_name']] ||
-          $controlling_group && $node->content[$controlling_group]['group'][$field['control_field_name']]) {
-        foreach ($node->$field['control_field_name'] as $value) {
-          $current_values[$field['control_field_name']] = $value['value'];
-          if (!empty($value['value'])) {
-            $viewed = TRUE;
-          } 
-        }
+      foreach ($node->$field['control_field_name'] as $value) {
+        $current_values[$field['control_field_name']] = $value['value'];
+        if (!empty($value['value']) && $node->content[$field['control_field_name']]['field']['#access'] == TRUE) {
+          $viewed = TRUE;
+        } 
       }
-      
+
       if ($viewed) {
         // Hide the controlled field if it is not triggered
         if (!conditional_fields_is_triggered($current_values[$field['control_field_name']], $field['trigger_values'])) {
@@ -239,9 +238,10 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
           }
         }
       }
-      else if ($node->content[$field['field_name']]) {
+      else {
         // Apply orphaned fields settings
         $orphaned_settings = variable_get('c_fields_view_' . $node->type, C_FIELDS_ORPHANED_SHOW_TRIGGERED);
+
         switch ($orphaned_settings) {
           case C_FIELDS_ORPHANED_SHOW_TRIGGERED:
             // If the field was triggered, don't hide it
