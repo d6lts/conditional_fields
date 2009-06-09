@@ -122,7 +122,7 @@ function _conditional_fields_admin($form, $type) {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE
   );
-  $options = array(C_FIELDS_ORPHANED_HIDE => t('Hide'), C_FIELDS_ORPHANED_SHOW_TRIGGERED => t('Show only triggered'), C_FIELDS_ORPHANED_SHOW_ALL => t('Show all'));
+  $options = array(C_FIELDS_ORPHANED_HIDE => t('Hide'), C_FIELDS_ORPHANED_SHOW_TRIGGERED => t('Show only if triggered'), C_FIELDS_ORPHANED_SHOW_ALL => t('Show'));
   $form['orphaned']['orphaned_view'] = array(
     '#type' => 'radios',
     '#title' => t('On node view'),
@@ -141,9 +141,9 @@ function _conditional_fields_admin($form, $type) {
     '#description' => t('Select this box to let users with the <a href="@access-control-page">administer conditional fields</a> permission to view all controlled fields of a node.', array('@access-control-page' => url('admin/user/permissions', array('fragment' => 'module-conditional_fields')))),
     '#default_value' => variable_get('c_fields_show_all_' . $type, 0)
   );
-  $form['reset'] = array(
+  $form['delete'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Reset'),
+    '#title' => t('Delete'),
     '#description' => t('Delete all conditional fields configured for this content type. This will delete the conditional fields settings, not the fields themselves.'),
     '#default_value' => 0
   );
@@ -158,7 +158,7 @@ function _conditional_fields_admin($form, $type) {
 function _conditional_fields_admin_submit($form, &$form_state) {
   $type = $form['#parameters'][2];
   
-  if ($form_state['values']['reset'] == 1) {
+  if ($form_state['values']['delete'] == 1) {
     conditional_fields_node_type_delete($type);
     $message = t(' All configured conditional fields have been deleted.');
   }
