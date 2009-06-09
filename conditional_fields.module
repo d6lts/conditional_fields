@@ -272,9 +272,6 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
     case 'fieldgroup_remove_group':
       $form['#submit'][] = 'conditional_fields_fieldgroup_remove_group_submit';
       break;
-    case $form['type']['#value'] . '_node_form':
-      conditional_fields_node_editing_form($form, $form_state);
-      break;
     case 'content_add_more_js':
       // Handle ahah multiple fields
       $key = array_keys($form);
@@ -289,6 +286,10 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
     case 'content_copy_import_form':
       $form['#submit'][] = 'conditional_fields_import';
       break;
+  }
+  
+  if (isset($form['type']['#value']) && $form_id == $form['type']['#value'] . '_node_form') {
+    conditional_fields_node_editing_form($form, $form_state);
   }
 }
  
