@@ -16,8 +16,24 @@ define ('C_FIELDS_ORPHANED_SHOW_ALL', 2);
 
 function conditional_fields_help($path, $arg) {
 switch ($path) {
-  case 'admin/content/types/%/conditional':
+  case "admin/content/node-type/$arg[3]/conditional":
     return t('These settings only apply to the conditional fields of this content type.');
+    break;
+  case 'admin/help#conditional_fields':
+    $output = '<p>' . t('The Conditional Fields module allows to set fields with allowed values as "controlling fields" for other fields and groups. When a field or group is "controlled", it will only be available for editing and displayed if the selected values of the controlling field match the "trigger values" assigned to it. You can, for example, make a custom "article teaser" field that is shown only if a "Has teaser" checkbox is checked.') . '</p>';
+    $output .= '<p>' . t('When editing a node, the controlled fields are dynamically shown and hidden with javascript.') . '</p>';
+    $output .= '<p>' . t('On node view, the controlled fields which were left untriggered are hidden.') . '</p>';
+    $output .= '<p>' . t('Once the module is activated, a new set of options will appear in the editing form of cck fields, from where you can select which of the allowed values available of candidate "controlling" fields will make the field "controlled". If <em>- Not controlling -</em> or no value is selected, the field will be shown as usual.') . '</p>';
+    $output .= '<p>' . t('These are the requisites to make a field controllable:') . '</p>';
+    $output .= '<ul>';
+    $output .= '<li>'. t('The controlling field widget must be single or multiple select list, radio buttons or checkboxes.') .'</li>';
+    $output .= '<li>'. t("The controlling field must have allowed values.") .'</li>';
+    $output .= '<li>'. t('If the controlled field is in a group, the controlling field must be in the same group.') .'</li>';
+    $output .= '<li>'. t('If you want to make a group controllable, the controlling field should not be inside a group.') .'</li>';
+    $output .= '</ul>';
+    $output .= '<p>' . t('There is also a "Conditional fields" settings tab in every content type admin page.') . '</p>';
+    $output .= '<p>' . t('The <a href="@handbook">Conditional Fields Handbook</a> contains further explanations and examples.', array('@handbook' => url('http://drupal.org/node/475488'))) . '</p>';
+    return $output;
     break;
   }
 }
