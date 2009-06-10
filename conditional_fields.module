@@ -320,12 +320,13 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
  * Alteration of the field editing form
  */
 function conditional_fields_content_admin_field(&$form) {
-  
-  $type = array();
-  $type = content_types($form['type_name']['#value']);
-  
+  $type = (array)content_types($form['type_name']['#value']);
+
   // Load conditional fields data.
   $data = conditional_fields_load_data($type['type']);
+  if (empty($data)) {
+    return;
+  }
 
   // Get all fields controlled by this one.
   $controlled_fields = array();
@@ -335,24 +336,26 @@ function conditional_fields_content_admin_field(&$form) {
     }
   }
   
-  // Add extra validation funcion
-  $form['#validate'] = array_merge(array('conditional_fields_content_admin_field_validate'), $form['#validate']);
-  
-  $form['#controlled_fields'] = $controlled_fields;
+  // Build controlling field form. Return here because nested conditional fields are not supported.
+  if (!empty($controlled_fields)) {
+    $form['#controlled_fields'] = $controlled_fields;
+
+    // Add validation function
+    $form['#validate'] = array_merge(array('conditional_fields_content_admin_field_validate'), $form['#validate']);
+
+    conditional_fields_content_admin_field_controlling($form['widget'], $type, $controlled_fields);
+    return;
+  }  
 
   // Check if field is in a group
-  if (module_exists('fieldgroup')) {
-    $controlled_field_in_group = fieldgroup_get_group($form['type_name']['#value'], $form['field_name']['#value']);
+  if (module_exists('fieldgroup') && isset($form['widget']['group'])) {
+    $controlled_field_in_group = $form['widget']['group']['#value'];
   }
 
   // Get available fields, which are:
   foreach ($type['fields'] as $field) {
     // - Not this one :)
     if ($field['field_name'] == $form['field_name']['#value']) {
-      continue;
-    }
-    // - AND not controlled by this one
-    if ($controlled_fields[$field['field_name']]) {
       continue;
     }
     // - AND fields not in a group (if this field isn't in a group), or fields in the same group.
@@ -369,29 +372,98 @@ function conditional_fields_content_admin_field(&$form) {
   }
 
   if (isset($available_fields)) {
-    // Add controlled fields notice
-    if (!empty($controlled_fields)) {
-      foreach ($controlled_fields as $field => $trigger_values) {
-        if (substr($field, 0, 6) == 'group_') { // It's a group
-          $rows[] = array($field, implode($trigger_values, ', '), t('group'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/groups/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
-        }
-        else { // It's a field
-          $rows[] = array($field, implode($trigger_values, ', '), t('field'), '<a href="' . url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field, array('fragment' => 'conditional-fields-settings')) . '">' . t('edit') . '</a>');
-        }
-      }
-    }
+    conditional_fields_content_admin_field_controllable($form['widget'], $type, $form['field_name']['#value'], $available_fields, $allowed_values, 'field');
     
-    if ($rows) {
-      $description = t('<p>Below is a list of all fields and groups controlled by this field. If you want to make this field controllable, you have to clear the settings for each controlled field.</p>') . theme('table', array(t('Name'), t('Trigger values'), t('Type'), t('Options')), $rows);
-    }
-    else {
-      // Add extra submission funcion
-      $form['#submit'] = array_merge(array('conditional_fields_forms_submit'), $form['#submit']);
-    }
-    
-    $form['widget'] = _conditional_fields_build_form($type, $form['widget'], $form['field_name']['#value'], $controlled_fields, $available_fields, $allowed_values, 'field', $description);
+    // Add validation function
+    $form['#validate'] = array_merge(array('conditional_fields_content_admin_field_validate'), $form['#validate']);
+
+    // Add submission function
+    $form['#submit'] = array_merge(array('conditional_fields_forms_submit'), $form['#submit']);
   }
   return;
+}
+
+/**
+ * Controlling field settings form
+ * (just a table containing information about controlled fields)
+ */
+function conditional_fields_content_admin_field_controlling(&$form, $type, $controlled_fields) {
+  $description = '<p>' . t('Below is a list of all fields and groups controlled by this field. If you want to make this field controllable, you have to clear the settings for each controlled field.') . '</p>';
+  conditional_fields_content_admin_field_fieldset($form, $description);
+
+  foreach ($controlled_fields as $field => $trigger_values) {
+    if (substr($field, 0, 6) == 'group_') { // It's a group
+      $rows[] = array($field, 
+        implode($trigger_values, ', '), 
+        t('group'), 
+        t('<a href="@edit-group">edit</a>', array('@edit-group' => url('admin/content/node-type/' . $type['url_str'] . '/groups/' . $field, array('fragment' => 'conditional-fields-settings')))),
+      );
+    }
+    else { // It's a field
+      $rows[] = array($field, 
+        implode($trigger_values, ', '), 
+        t('field'), 
+        t('<a href="@edit-field">edit</a>', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field, array('fragment' => 'conditional-fields-settings')))),
+      );
+    }
+  }
+  $form['conditional_fields']['controlled_fields'] = array('#value' => theme('table', array(t('Name'), t('Trigger values'), t('Type'), t('Options')), $rows));
+}
+
+/**
+ * Controllable field settings form
+ */
+function conditional_fields_content_admin_field_controllable(&$form, $type, $field_name, $available_fields, $allowed_values, $context) {
+  $description = '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => t($context))) . '</p>';
+
+  conditional_fields_content_admin_field_fieldset($form, $description, TRUE);
+      
+  $default_values = conditional_fields_available_fields_default_values($field_name, $available_fields);
+    
+  // Create selection lists
+  foreach ($available_fields as $field) {
+    $allowed_values[$field['field_name']] = array('conditional_field_no_value' => t('- Not controlling -')) + $allowed_values[$field['field_name']];
+    
+    if (isset($default_values[$field['field_name']]) && $default_values[$field['field_name']] != FALSE) {
+      $default_value = $default_values[$field['field_name']];
+      $set = TRUE;
+    }
+    else {
+      $default_value = 'conditional_field_no_value';
+    }
+    
+    $form['conditional_fields'][$field['field_name']] = array(
+      '#type' => 'select',
+      '#multiple' => TRUE,
+      '#title' => t($field['widget']['label']) . ' (' . $field['field_name'] . ')',
+      // To do: set right url for groups
+      '#description' => t('<a href="@edit-field">Edit the allowed values</a> of %field-name.', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field['field_name'], array('query' => 'destination=admin/content/node-type/' . arg(3) . '/' . arg(4) . '/' . arg(5))), '%field-name' => $field['field_name']) ),
+      '#options' => $allowed_values[$field['field_name']],
+      '#default_value' => $default_value,
+    );
+    
+  }
+  
+  // Don't collapse the settings if we already have a configuration
+  if ($set) {
+    $form['conditional_fields']['#collapsed'] = FALSE;
+  }
+}
+
+/**
+ * Field editing form: conditional fields fieldset
+ */
+function conditional_fields_content_admin_field_fieldset(&$form, $description, $collapsed = FALSE) {
+  $form['conditional_fields'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Conditional fields settings'),
+    '#tree' => TRUE,
+    '#collapsible' => TRUE,
+    '#collapsed' => $collapsed,
+    '#description' => $description,
+    '#weight' => 8,
+    '#attributes' => array('id' => 'conditional-fields-settings'),
+  );
 }
 
 /**
@@ -413,70 +485,13 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
   }
 
   if (isset($available_fields)) {
-    $form = _conditional_fields_build_form($form['#content_type'], $form, $form['group_name']['#default_value'], array(), $available_fields, $allowed_values, 'group');
-    // Add extra validation funcion
+    conditional_fields_content_admin_field_controllable($form, $form['#content_type'], $form['group_name']['#default_value'], $available_fields, $allowed_values, $context);
+    // Add validation function
     $form['#validate'][] = 'conditional_fields_content_admin_field_validate';
-    // Add extra submission funcion
+    // Add submission function
     $form['#submit'] = array_merge(array('conditional_fields_forms_submit'), $form['#submit']);
   }    
   return;
-}
-
-/**
- * This adds conditional fields settings in the field and fieldgroup editing forms.
- * Valid choices for $op are 'field' and 'group'
- */
-function _conditional_fields_build_form($type, $form, $control_field, $controlled_fields, $available_fields, $allowed_values, $op, $description = NULL) {
-  if (!$description) {
-    $description = t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => t($op))) . $description;
-  }
-    
-  $form['conditional_fields'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Conditional fields settings'),
-    '#tree' => TRUE,
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-    '#description' => $description,
-    '#weight' => 8,
-    '#attributes' => array('id' => 'conditional-fields-settings'),
-  );
-  
-  if (empty($controlled_fields)) {  // Disallow nested conditional fields
-    
-    $default_values = conditional_fields_default_values($control_field, $available_fields);
-    
-    // Create selection lists
-    foreach ($available_fields as $field) {
-      $allowed_values[$field['field_name']] = array('conditional_field_no_value' => t('- Not controlling -')) + $allowed_values[$field['field_name']];
-      
-      if (isset($default_values[$field['field_name']]) && $default_values[$field['field_name']] != FALSE) {
-        $default_value = $default_values[$field['field_name']];
-        $set = TRUE;
-      }
-      else {
-        $default_value = 'conditional_field_no_value';
-      }
-      
-      $form['conditional_fields'][$field['field_name']] = array(
-        '#type' => 'select',
-        '#multiple' => TRUE,
-        '#title' => t($field['widget']['label']) . ' (' . $field['field_name'] . ')',
-        // To do: set right url for groups
-        '#description' => t('<a href="@edit-field">Edit the allowed values</a> of %field-name.', array('@edit-field' => url('admin/content/node-type/' . $type['url_str'] . '/fields/' . $field['field_name'], array('query' => 'destination=admin/content/node-type/' . arg(3) . '/' . arg(4) . '/' . arg(5), 'fragment' => 'edit-allowed-values')), '%field-name' => $field['field_name']) ),
-        '#options' => $allowed_values[$field['field_name']],
-        '#default_value' => $default_value,
-      );
-      
-    }
-    
-    // Don't collapse the settings if we already have a configuration
-    if ($set) {
-      $form['conditional_fields']['#collapsed'] = FALSE;
-    }
-  }
-  
-  return $form;
 }
 
 /**
@@ -863,7 +878,7 @@ function conditional_fields_field_overview_form(&$form) {
     }
   }
 
-  // Add validation funcion
+  // Add validation function
   $form['#validate'] = array_merge(array('conditional_fields_field_overview_form_validate'), $form['#validate']);
 }
 
@@ -913,7 +928,7 @@ function conditional_fields_get_control_fields($field_name, $type) {
 /**
  * Load default values from conditional_fields table.
  */
-function conditional_fields_default_values($control_field, $conditional_fields) {
+function conditional_fields_available_fields_default_values($control_field, $conditional_fields) {
   foreach ($conditional_fields as $field) {
     $query = db_query("SELECT trigger_values FROM {conditional_fields} WHERE control_field_name = '%s' AND field_name = '%s' AND type = '%s'", $field['field_name'], $control_field, $field['type_name']);
     $default_values[$field['field_name']] = unserialize(db_result($query));
