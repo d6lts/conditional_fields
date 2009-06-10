@@ -135,6 +135,12 @@ function _conditional_fields_admin($form, $type) {
     '#options' => $options,
     '#default_value' => variable_get('c_fields_edit_' . $type, C_FIELDS_ORPHANED_SHOW_TRIGGERED)
   );
+  $form['reset_default'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Reset untriggered fields to default values'),
+    '#description' => t('Select this box to reset untriggered controlled fields to their default values when saving a node.'),
+    '#default_value' => variable_get('c_fields_reset_default_' . $type, 1)
+  );
   $form['show_all'] = array(
     '#type' => 'checkbox',
     '#title' => t('Administrators see all fields'),
@@ -168,6 +174,7 @@ function _conditional_fields_admin_submit($form, &$form_state) {
   variable_set('c_fields_anim_speed_' . $type, $form_state['values']['anim_speed']);
   variable_set('c_fields_view_' . $type, $form_state['values']['orphaned_view']);
   variable_set('c_fields_edit_' . $type, $form_state['values']['orphaned_edit']);
+  variable_set('c_fields_reset_default_' . $type, $form_state['values']['reset_default']);
   variable_set('c_fields_show_all_' . $type, $form_state['values']['show_all']);
 
   drupal_set_message(t('Conditional fields options for this content type saved.') . $message);
@@ -722,7 +729,9 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
       }
       else {
         // Do not submit values of controlled fields which were not triggered (except on preview)
-        if (!in_array('node_form_build_preview', $form_state['submit_handlers']) && is_array($form['#field_info'][$row['field_name']]['widget']['default_value'])) {
+        if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
+            !in_array('node_form_build_preview', $form_state['submit_handlers']) && 
+            is_array($form['#field_info'][$row['field_name']]['widget']['default_value'])) {
           foreach ($form['#field_info'][$row['field_name']]['widget']['default_value'] as $delta => $value) {
             $form_state['values'][$row['field_name']][$delta]['value'] = $value['value'];
           }
@@ -751,7 +760,9 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
         }
         else {
           // Do not submit values of controlled fields which were not triggered (except on preview)
-          if (!in_array('node_form_build_preview', $form_state['submit_handlers']) && is_array($form['#field_info'][$field_in_group]['widget']['default_value'])) {
+          if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
+              !in_array('node_form_build_preview', $form_state['submit_handlers']) && 
+              is_array($form['#field_info'][$field_in_group]['widget']['default_value'])) {
             foreach ($form['#field_info'][$field_in_group]['widget']['default_value'] as $delta => $value) {
               $form_state['values'][$field_in_group][$delta]['value'] = $value['value'];
             }
@@ -971,6 +982,7 @@ function conditional_fields_node_type_update($info) {
     db_query("UPDATE {variable} SET name = 'c_fields_js_%s' WHERE name ='c_fields_js_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_animation_%s' WHERE name ='c_fields_animation_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_anim_speed_%s' WHERE name ='c_fields_anim_speed_%s'", $info->type, $info->old_type);
+    db_query("UPDATE {variable} SET name = 'c_fields_reset_default_%s' WHERE name ='c_fields_reset_default_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_show_all_%s' WHERE name ='c_fields_show_all_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_view_%s' WHERE name ='c_fields_view_%s'", $info->type, $info->old_type);
     db_query("UPDATE {variable} SET name = 'c_fields_edit_%s' WHERE name ='c_fields_edit_%s'", $info->type, $info->old_type);  
@@ -988,6 +1000,7 @@ function conditional_fields_node_type_delete($type) {
   variable_del('c_fields_js_' . $type);
   variable_del('c_fields_animation_' . $type);
   variable_del('c_fields_anim_speed_' . $type);
+  variable_del('c_fields_reset_default_' . $type);
   variable_del('c_fields_show_all_' . $type);
   variable_del('c_fields_view_' . $type);
   variable_del('c_fields_edit_' . $type);
