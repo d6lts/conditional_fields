@@ -900,36 +900,6 @@ function conditional_fields_field_overview_form_validate($form, $form_state) {
 }
 
 /**
- * Returns an array of fields and fieldgroups controlled by the field $fieldname.
- * $type is the content type name of the field
- */
-function conditional_fields_get_control_fields($field_name, $type) {
-  static $controlled_fields;
-  if (!$controlled_fields[$type][$field_name]) {
-    if ($type) {
-      $query = db_query("SELECT field_name FROM {conditional_fields} WHERE control_field_name = '%s' AND type = '%s'", $field_name, $type);
-    }
-    else {
-      $query = db_query("SELECT field_name FROM {conditional_fields} WHERE control_field_name = '%s'", $field_name);
-    }
-    if (module_exists('fieldgroup')) {
-      $type_groups = array_keys(fieldgroup_groups($type));
-    }
-    $controlled_fields[$type][$field_name] = array('field' => array(), 'group' => array());
-    while ($controlled_field = db_fetch_object($query)) {
-      if ($type_groups) {
-        in_array($controlled_field->field_name, $type_groups) ? $field_or_group = 'group' : $field_or_group = 'field';
-      }
-      else {
-        $field_or_group = 'field';
-      }
-      $controlled_fields[$type][$field_name][$field_or_group][] = $controlled_field->field_name;
-    }
-  }
-  return $controlled_fields[$type][$field_name];
-}
-
-/**
  * Load default values from conditional_fields table.
  */
 function conditional_fields_available_fields_default_values($control_field, $conditional_fields) {
