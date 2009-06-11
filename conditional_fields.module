@@ -349,7 +349,7 @@ function conditional_fields_content_admin_field(&$form) {
   }  
 
   // Check if field is in a group
-  if (module_exists('fieldgroup') && isset($form['widget']['group'])) {
+  if (isset($form['widget']['group'])) {
     $controlled_field_in_group = $form['widget']['group']['#value'];
   }
 
@@ -361,7 +361,7 @@ function conditional_fields_content_admin_field(&$form) {
     }
     // - AND fields not in a group (if this field isn't in a group), or fields in the same group.
     if (isset($controlled_field_in_group)) {
-      if ($controlled_field_in_group != fieldgroup_get_group($field['type_name'], $field['field_name'])) {
+      if ($controlled_field_in_group != conditional_fields_get_group($field['type_name'], $field['field_name'])) {
         continue;
       }
     }
