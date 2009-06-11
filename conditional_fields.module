@@ -320,6 +320,10 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
  * Alteration of the field editing form
  */
 function conditional_fields_content_admin_field(&$form) {
+  if (!user_access('administer conditional fields')) {
+    return;
+  }
+
   $type = (array)content_types($form['type_name']['#value']);
 
   // Load conditional fields data.
