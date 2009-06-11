@@ -328,9 +328,6 @@ function conditional_fields_content_admin_field(&$form) {
 
   // Load conditional fields data.
   $data = conditional_fields_load_data($type['type']);
-  if (empty($data)) {
-    return;
-  }
 
   // Get all fields controlled by this one.
   $controlled_fields = array();
