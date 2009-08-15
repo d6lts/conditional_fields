@@ -51,8 +51,21 @@ Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPag
       case 0:
         showOrHide == 'show' ? toSwitch.show() : toSwitch.hide();
       case 1:
-        showOrHide == 'show' ? toSwitch.slideDown(Drupal.settings.ConditionalFields.ui_settings.anim_speed) :
-                               toSwitch.slideUp(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
+        /* Don't double top and bottom margins while sliding. */
+        var firstChild = toSwitch.children(':first-child');
+        var marginTop = firstChild.css('margin-top');
+        var marginBottom = firstChild.css('margin-bottom');
+        firstChild.css('margin-top', '0').css('margin-bottom', '0');
+        if (showOrHide == 'show') {
+          toSwitch.slideDown(Drupal.settings.ConditionalFields.ui_settings.anim_speed, function() {
+            firstChild.css('margin-top', marginTop).css('margin-bottom', marginBottom);
+          });
+        }
+        else {
+          toSwitch.slideUp(Drupal.settings.ConditionalFields.ui_settings.anim_speed, function() {
+            firstChild.css('margin-top', marginTop).css('margin-bottom', marginBottom);
+          });
+        }
       case 2:
         showOrHide == 'show' ? toSwitch.fadeIn(Drupal.settings.ConditionalFields.ui_settings.anim_speed) :
                                toSwitch.fadeOut(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
