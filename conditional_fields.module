@@ -645,8 +645,8 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
       // Groups
       if ($controlled_fields[$element]) {
         // Group markup is still hardcoded.
-        $form[$element]['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($element) . '" class="conditional-field controlled-field">';
-        $form[$element]['#suffix'] = '</div>';
+        $form[$element]['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($element) . '" class="conditional-field controlled-field">' . $form[$element]['#prefix'];
+        $form[$element]['#suffix'] = $form[$element]['#suffix'] . '</div>';
       }
       // Fields in groups
       foreach (element_children($form[$element]) as $group_element) {
@@ -1133,8 +1133,8 @@ function theme_conditional_fields_form_item($item) {
         return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . theme('content_multiple_values', $item) . '</div>';
       }
       /* Avoid unnecessary divs in other kinds of fields */
-      $item['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">';
-      $item['#suffix'] = '</div>';
+      $item['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . $item['#prefix'];
+      $item['#suffix'] = $item['#suffix'] . '</div>';
       return drupal_render($item);
     }
     /* Normal fields */
