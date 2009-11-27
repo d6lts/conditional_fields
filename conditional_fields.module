@@ -212,18 +212,8 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
         continue;
       }
 
-      // The controlling field is not in a group and is not the form for other reasons. Skip.
-      if (!$controlling_group && !$node->content[$field['control_field_name']]) {
-        continue;
-      }
-
       // The controlled field is in a group and is not the form for other reasons. Skip.
       if ($controlled_group && !$node->content[$controlled_group]['group'][$field['field_name']]) {
-        continue;
-      }
-
-      // The controlling field is in a group and is not the form for other reasons. Skip.
-      if ($controlling_group && !$node->content[$controlling_group]['group'][$field['control_field_name']]) {
         continue;
       }
 
