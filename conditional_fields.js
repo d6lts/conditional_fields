@@ -10,15 +10,19 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
     if (controllingField == id) {
       /* Find the settings of the controlled field */
       $.each(controlledFields, function(i, fieldSettings) {
-        Drupal.ConditionalFields.doAnimation(fieldSettings, 'hide', onPageReady);
+        var hideField = true;
         /* Find the trigger values of the controlled field (for this controlling field) */
         $.each(fieldSettings.trigger_values, function(ii, val) {
           if (jQuery.inArray(val, values) != -1) {
-            Drupal.ConditionalFields.doAnimation(fieldSettings, 'show', onPageReady); 
+            Drupal.ConditionalFields.doAnimation(fieldSettings, 'show', onPageReady);
+            hideField = false;
             /* Stop searching in this field */
             return false;
           }
         });
+        if (hideField) {
+          Drupal.ConditionalFields.doAnimation(fieldSettings, 'hide', onPageReady);
+        }
         /* To do: Feature: Multiple controlling fields on the same field, are
            not supported for now. Test: other controlling fields types and widgets. */
       });
