@@ -565,17 +565,20 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
           if (!$form[$field['control_field_in_group']][$field['control_field_name']]  ||
             $form[$field['control_field_in_group']][$field['control_field_name']]['#type'] == 'markup' ||
             $form[$field['control_field_in_group']][$field['control_field_name']]['#access'] == FALSE) {
-            if (!$show_triggered || !in_array($form_state['values'][$field['control_field_name']][0]['value'], $field['trigger_values'])) {
+            if (!$show_triggered || 
+                !conditional_fields_is_triggered($form[$field['control_field_name']]['#value'], $field['trigger_values'])) {
               unset($form[$field['control_field_in_group']][$field['field_name']]);
               unset($data[$key]);
             }
+            
           }
         }
         else {
           if (!$form[$field['control_field_name']] ||
             $form[$field['control_field_name']]['#type'] == 'markup' ||
             $form[$field['control_field_name']]['#access'] == FALSE) {
-            if (!$show_triggered || !in_array($form_state['values'][$field['control_field_name']][0]['value'], $field['trigger_values'])) {
+            if (!$show_triggered || 
+                !conditional_fields_is_triggered($form[$field['control_field_name']]['#value'], $field['trigger_values'])) {
               unset($form[$field['field_name']]);
               unset($data[$key]);
             }
