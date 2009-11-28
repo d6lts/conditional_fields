@@ -237,10 +237,10 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
         // Hide the controlled field if it is not triggered
         if (!conditional_fields_is_triggered($current_values[$field['control_field_name']], $field['trigger_values'])) {
           if ($controlled_group) {
-            unset($node->content[$controlled_group]['group'][$field['field_name']]);
+            $node->content[$controlled_group]['group'][$field['field_name']]['#access'] = FALSE;
           }
           else {
-            unset($node->content[$field['field_name']]);
+            $node->content[$field['field_name']]['#access'] = FALSE;
           }
         }
       }
@@ -257,10 +257,10 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
           case C_FIELDS_ORPHANED_HIDE:
             // We hide the field
             if ($controlled_group) {
-              unset($node->content[$controlled_group]['group'][$field['field_name']]);
+              $node->content[$controlled_group]['group'][$field['field_name']]['#access'] = FALSE;
             }
             else {
-              unset($node->content[$field['field_name']]);
+              $node->content[$field['field_name']]['#access'] = FALSE;
             }
           case C_FIELDS_ORPHANED_SHOW_ALL:
             // Nothing to do...
