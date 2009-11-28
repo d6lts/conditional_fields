@@ -499,7 +499,15 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
  */
 function conditional_fields_content_admin_field_validate($form, &$form_state) {
   if ($form_state['values']['conditional_fields']) {
+    $count_selected = 0;
     foreach ($form_state['values']['conditional_fields'] as $available_field => $trigger_values) {
+      // Disallow more than one controlling field until properly supported
+      if (count($trigger_values) > 1 || !$trigger_values['conditional_field_no_value']) {
+        $count_selected++;
+        if ($count_selected == 2) {
+          form_set_error('conditional_fields', t("You cannot select more than one controlling field."));
+        }
+      }
       // Disallow selecting Not set and values at the same time
       if ($trigger_values['conditional_field_no_value'] && count($trigger_values) > 1) {
         form_set_error('conditional_fields][' . $available_field, t("You cannot select 'Not controlling' and other values at the same time."));
