@@ -219,13 +219,17 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
 
       $viewed = FALSE;
       $current_values[$field['control_field_name']] = array();
-      
+
       // Create an array with the selected controlling field's values
       // Check if the controlling field is viewed as well
       foreach ((array)$node->$field['control_field_name'] as $value) {
         $current_values[$field['control_field_name']][] = $value['value'];
-        if (!empty($value['value']) && $node->content[$field['control_field_name']]['field']['#access'] == TRUE) {
-          $viewed = TRUE;
+        if (!empty($value['value'])) {
+          if ($node->content[$field['control_field_name']]['field']['#access'] == TRUE ||
+              ($controlling_group && 
+              $node->content[$controlling_group]['group'][$field['control_field_name']]['field']['#access'] == TRUE)) {
+            $viewed = TRUE;
+          }
         }
       }
 
