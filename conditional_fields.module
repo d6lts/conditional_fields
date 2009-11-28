@@ -509,7 +509,7 @@ function conditional_fields_content_admin_field_validate($form, &$form_state) {
   else {
     // Warn user on allowed values change
     if (!$GLOBALS['content_copy'] && !empty($form['#controlled_fields']) && $form_state['values']['allowed_values'] != $form_state['#field_info'][$form['values']['field_name']]['allowed_values']) {
-      drupal_set_message(t('If you removed one or more allowed values from the field, you might have to edit its controlled Conditional fields and/or fieldgroups settings.'), 'error');
+      drupal_set_message(t('If you changed or removed any allowed value from the field, you might have to review its controlled fields and fieldgroups settings.'), 'warning');
     }
   }
 }
