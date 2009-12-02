@@ -226,8 +226,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
         $current_values[$field['control_field_name']][] = $value['value'];
         if (!empty($value['value'])) {
           if ($node->content[$field['control_field_name']]['field']['#access'] == TRUE ||
-              ($controlling_group && 
-              $node->content[$controlling_group]['group'][$field['control_field_name']]['field']['#access'] == TRUE)) {
+              ($controlling_group && $node->content[$controlling_group]['group'][$field['control_field_name']]['field']['#access'] == TRUE)) {
             $viewed = TRUE;
           }
         }
@@ -637,7 +636,7 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
         $form[$element]['#controlling_field'] = $element;
         $form[$element]['#theme'] = array('conditional_fields_form_item');
       }
-      else if ($controlled_fields[$element]) {
+      elseif ($controlled_fields[$element]) {
         if ($form[$element]['#required']) {
           conditional_fields_unset_required_field($form[$element]);
           $required_fields[$element] = array('field' => $element);
@@ -646,7 +645,7 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
         $form[$element]['#theme'] = array('conditional_fields_form_item');
       }
     }
-    else if (strpos($element , 'group_') === 0) {
+    elseif (strpos($element , 'group_') === 0) {
       // Groups
       if ($controlled_fields[$element]) {
         // Group markup is still hardcoded.
@@ -666,7 +665,7 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
           $form[$element][$group_element]['#controlling_field'] = $group_element;
           $form[$element][$group_element]['#theme'] = array('conditional_fields_form_item');
         }
-        else if ($controlled_fields[$group_element]) {
+        elseif ($controlled_fields[$group_element]) {
           // Manage multiple ahah fields
           if ($form[$element][$group_element]['#theme'] == 'content_multiple_values') {
             $form[$element][$group_element]['#conditional_fields_multiple'] = TRUE;
@@ -777,7 +776,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
     }
 
     // Controlled group
-    else if (strpos($row['field_name'] , 'group_') === 0) {
+    elseif (strpos($row['field_name'] , 'group_') === 0) {
 
       foreach (element_children($form[$row['field_name']]) as $field_in_group) {
 
@@ -819,7 +818,7 @@ function conditional_fields_check_empty($field) {
     $value = $field[0]['value'];
   }
   // Node reference
-  else if (isset($field[0]['nid'])) {
+  elseif (isset($field[0]['nid'])) {
     $value = $field[0]['nid'];
   }
 
@@ -865,7 +864,7 @@ function conditional_fields_load_data($type, $structure = 'row', $reset = FALSE)
         $data['row'][$type][] = $result;
       }
     }
-    else if ($structure == 'flat') {
+    elseif ($structure == 'flat') {
       $query = db_query("SELECT control_field_name, field_name FROM {conditional_fields} WHERE type = '%s'", $type);
       while ($result = db_fetch_array($query)) {
         $data['flat'][$type][$result['control_field_name']] = $result['control_field_name'];
@@ -1022,7 +1021,7 @@ function conditional_fields_content_fieldapi($ops, $field) {
     db_query("DELETE FROM {conditional_fields} WHERE type = '%s' AND (control_field_name = '%s' OR field_name = '%s')", $field['type_name'], $field['field_name'], $field['field_name']);
   }
   // Import conditional fields definitions with content_copy module
-  else if ($ops == 'create instance') {
+  elseif ($ops == 'create instance') {
     if ($field['conditional_fields']) {
       conditional_fields_save_field($field['type_name'], $field['field_name'], $field['conditional_fields']);
     }
@@ -1137,7 +1136,7 @@ function theme_conditional_fields_form_item($item) {
   if ($id = $item['#controlling_field']) {
     return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlling-field">' . drupal_render($item) . '</div>';
   }
-  else if ($id = $item['#controlled_field']) {
+  elseif ($id = $item['#controlled_field']) {
     if ($item['#type'] == 'markup') {
       /* Manage ahah multiple fields */
       if ($item['#conditional_fields_multiple']) {
