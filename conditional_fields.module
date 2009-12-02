@@ -30,10 +30,10 @@ switch ($path) {
     $output .= '<p>' . t('Once the module is activated, a new set of options will appear in the editing form of cck fields, from where you can select which of the allowed values available of candidate "controlling" fields will make the field "controlled". If <em>- Not controlling -</em> or no value is selected, the field will be shown as usual.') . '</p>';
     $output .= '<p>' . t('These are the requisites to make a field controllable:') . '</p>';
     $output .= '<ul>';
-    $output .= '<li>'. t('The controlling field widget must be single or multiple select list, radio buttons or checkboxes.') .'</li>';
-    $output .= '<li>'. t("The controlling field must have allowed values.") .'</li>';
-    $output .= '<li>'. t('If the controlled field is in a group, the controlling field must be in the same group.') .'</li>';
-    $output .= '<li>'. t('If you want to make a group controllable, the controlling field should not be inside a group.') .'</li>';
+    $output .= '<li>' . t('The controlling field widget must be single or multiple select list, radio buttons or checkboxes.') . '</li>';
+    $output .= '<li>' . t('The controlling field must have allowed values.') . '</li>';
+    $output .= '<li>' . t('If the controlled field is in a group, the controlling field must be in the same group.') . '</li>';
+    $output .= '<li>' . t('If you want to make a group controllable, the controlling field should not be inside a group.') . '</li>';
     $output .= '</ul>';
     $output .= '<p>' . t('There is also a "Conditional fields" settings tab in every content type admin page.') . '</p>';
     $output .= '<p>' . t('The <a href="@handbook">Conditional Fields Handbook</a> contains further explanations and examples.', array('@handbook' => url('http://drupal.org/node/475488'))) . '</p>';
@@ -96,7 +96,7 @@ function _conditional_fields_admin($form, $type) {
   $form['js_set']['anim'] = array(
     '#type' => 'fieldset',
     '#title' => t('Animation'),
-    '#description' => t("These settings have effect only if you select the 'Hide untriggered fields' option above."),
+    '#description' => t('These settings have effect only if you select the "Hide untriggered fields" option above.'),
   );
   $form['js_set']['anim']['animation'] = array(
     '#type' => 'radios',
@@ -414,7 +414,7 @@ function conditional_fields_content_admin_field_controlling(&$form, $type, $cont
  * Controllable field settings form
  */
 function conditional_fields_content_admin_field_controllable(&$form, $type, $field_name, $available_fields, $allowed_values, $context) {
-  $description = '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => t($context))) . '</p>';
+  $description = '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => $context)) . '</p>';
 
   conditional_fields_content_admin_field_fieldset($form, $description, TRUE);
 
@@ -505,12 +505,12 @@ function conditional_fields_content_admin_field_validate($form, &$form_state) {
       if (count($trigger_values) > 1 || !$trigger_values['conditional_field_no_value']) {
         $count_selected++;
         if ($count_selected == 2) {
-          form_set_error('conditional_fields', t("You cannot select more than one controlling field."));
+          form_set_error('conditional_fields', t('You cannot select more than one controlling field.'));
         }
       }
       // Disallow selecting Not set and values at the same time
       if ($trigger_values['conditional_field_no_value'] && count($trigger_values) > 1) {
-        form_set_error('conditional_fields][' . $available_field, t("You cannot select 'Not controlling' and other values at the same time."));
+        form_set_error('conditional_fields][' . $available_field, t('You cannot select "Not controlling" and other values at the same time.'));
       }
     }
   }
