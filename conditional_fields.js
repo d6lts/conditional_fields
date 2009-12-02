@@ -79,10 +79,8 @@ Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPag
 
 Drupal.ConditionalFields.findValues = function(field) {
   var values = [];
-  field.find('option:selected, input:checked').each( function() {
-    if ($(this)[0].selected || $(this)[0].checked) {
-      values[values.length] = this.value;
-    }
+  field.find('option:selected, input:checked, input:text, textarea').each( function() {
+    values[values.length] = this.value;
   });
   return values;
 }       
@@ -97,7 +95,12 @@ Drupal.behaviors.ConditionalFields = function (context) {
   $('.conditional-field.controlling-field:not(.conditional-field-processed)').addClass('conditional-field-processed').each(function () {
     /* Set default state */
     Drupal.ConditionalFields.switchField('#' + $(this).attr('id'), Drupal.ConditionalFields.findValues($(this)), true);
-    /* Add events. Apparently, Explorer doesn't catch the change event? */
-    $.browser.msie == true ? $(this).click(Drupal.ConditionalFields.fieldChange) : $(this).change(Drupal.ConditionalFields.fieldChange);
+    if ($(this).find('option, input:not(:text)').length > 0) {
+      /* Apparently, Explorer doesn't catch the change event? */
+      $.browser.msie == true ? $(this).click(Drupal.ConditionalFields.fieldChange) : $(this).change(Drupal.ConditionalFields.fieldChange);
+    }
+    else if ($(this).find('textarea, input:text').length > 0) {
+      $(this).keyup(Drupal.ConditionalFields.fieldChange);
+    }
   });
 };
