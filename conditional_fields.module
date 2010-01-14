@@ -563,8 +563,10 @@ function conditional_fields_node_after_build($form, &$form_state) {
   foreach ($data as $field) {
     $item_name = $field['field_name'];
 
+    $controlled_field_group = conditional_fields_get_group($type_name, $item_name);
+
     // Check if item is in form
-    if (!$current_item = conditional_fields_item_in_form($form, $item_name)) {
+    if (!$current_item = conditional_fields_item_in_form($form, $item_name, $controlled_field_group)) {
       continue;
     }
 
@@ -574,7 +576,8 @@ function conditional_fields_node_after_build($form, &$form_state) {
     }
 
     // Check if controlling field is in form and is editable
-    $controlling_field = conditional_fields_item_in_form($form, $field['control_field_name']);
+    $controlling_field_group = conditional_fields_get_group($type_name, $field['control_field_name']);
+    $controlling_field = conditional_fields_item_in_form($form, $field['control_field_name'], $controlling_field_group);
     $orphaned = TRUE;
     if ($controlling_field && $controlling_field['#access'] !== FALSE && $controlling_field['#type'] != 'markup') {
       $orphaned = FALSE;
@@ -586,7 +589,12 @@ function conditional_fields_node_after_build($form, &$form_state) {
     $parent_name = FALSE;
     if ($form['#field_info'][$item_name]) {
       $is_field = TRUE;
-      $parent_name = $form['#field_info'][$item_name]['display_settings']['parent'];
+      if ($controlled_field_group) {
+        $parent_name = $controlled_field_group;
+      }
+      elseif ($form['#field_info'][$item_name]['display_settings']['parent']) {
+        $parent_name = $form['#field_info'][$item_name]['display_settings']['parent'];        
+      }
     }
 
     // Apply orphaned fields settings
@@ -634,8 +642,10 @@ function conditional_fields_node_after_build($form, &$form_state) {
       if (strpos($item_name , 'group_') === 0) {
         $is_group = TRUE;
         foreach (element_children($current_item) as $group_element) {
-          conditional_fields_unset_required_field($current_item[$group_element]);
-          $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $item_name);
+          if ($current_item[$group_element]['#required']) {
+            conditional_fields_unset_required_field($current_item[$group_element]);
+            $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $item_name);
+          }
         }
       }
     }
@@ -669,7 +679,12 @@ function conditional_fields_node_after_build($form, &$form_state) {
       $form[$item_name] = $current_item;
     }
     // Controlling field
-    $controlling_field_parent_name = $form['#field_info'][$controlling_field['#field_name']]['display_settings']['parent'];
+    if ($controlling_field_group) {
+      $controlling_field_parent_name = $controlling_field_group;
+    }
+    else {
+      $controlling_field_parent_name = $form['#field_info'][$controlling_field['#field_name']]['display_settings']['parent'];
+    }
     if ($controlling_field_parent_name) {
       $form[$controlling_field_parent_name][$controlling_field['#field_name']] = $controlling_field;
     }
@@ -716,23 +731,34 @@ function conditional_fields_node_after_build($form, &$form_state) {
  * Find an item in a form by key. If it's a CCK field, the function
  * will find it using field_info.
  */
-function conditional_fields_item_in_form($form, $item_name) {
+function conditional_fields_item_in_form($form, $item_name, $group = FALSE) {
   static $items;
   if ($items[$item_name]) {
     return $items[$item_name];
   }
 
-  if ($form[$item_name]) {
-    $items[$item_name] = $form[$item_name];
-  }
-  elseif ($form[$form['#field_info'][$item_name]['display_settings']['parent']][$item_name]) {
-    $items[$item_name] = $form[$form['#field_info'][$item_name]['display_settings']['parent']][$item_name];
+  if ($group) {
+    if ($form[$group][$item_name]) {
+      $items[$item_name] = $form[$group][$item_name];      
+    }
+    elseif ($form[$group][$form['#field_info'][$item_name]['display_settings']['parent']][$item_name]) {
+      $items[$item_name] = $form[$group][$form['#field_info'][$item_name]['display_settings']['parent']][$item_name];
+    }
   }
   else {
-    return FALSE;
+    if ($form[$item_name]) {
+      $items[$item_name] = $form[$item_name];
+    }
+    elseif ($form[$form['#field_info'][$item_name]['display_settings']['parent']][$item_name]) {
+      $items[$item_name] = $form[$form['#field_info'][$item_name]['display_settings']['parent']][$item_name];
+    }
   }
 
-  return $items[$item_name];
+  if ($items[$item_name]) {
+    return $items[$item_name];
+  }
+
+  return FALSE;
 }
 
 /**
