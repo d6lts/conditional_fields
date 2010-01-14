@@ -734,30 +734,33 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
 
     // Controlled field
     if (strpos($row['field_name'] , 'field_') === 0) {
-
       if ($triggered) {
-
         // Check required
         if (!empty($required_fields) && $required_fields[$row['field_name']]) {
 
           // Check if the controlled field is empty
           if (conditional_fields_check_empty($form_state['values'][$row['field_name']])) {
-
             // Check whether the controlled field is in a group or not and set error accordingly
-            if (!isset($required_fields[$row['field_name']]['in_group'])) {
+            if (!$required_fields[$row['field_name']]['in_group']) {
               form_error($form[$row['field_name']],
                 t('!name field is required.',
                 array('!name' => $form[$row['field_name']]['#title'])));
             }
             else {
               // Set error only if the containing group is not controlled or is controlled and triggered
+              $set_error = TRUE;
               foreach ($form['#conditional_fields']['data'] as $row_check_containing_group) {
-                if ($row_check_containing_group['field_name'] == $required_fields[$row['field_name']]['in_group'] &&
-                    conditional_fields_is_triggered($form_state['values'][$row_check_containing_group['control_field_name']], $row_check_containing_group['trigger_values'])) {
-                  form_error($form[$required_fields[$row['field_name']]['in_group']][$row['field_name']],
-                    t('!name field is required.',
-                    array('!name' => $form[$required_fields[$row['field_name']]['in_group']][$row['field_name']]['#title'])));
+                if ($row_check_containing_group['field_name'] == $required_fields[$row['field_name']]['in_group']) {
+                  if (!conditional_fields_is_triggered($form_state['values'][$row_check_containing_group['control_field_name']], $row_check_containing_group['trigger_values'])) {
+                  $set_error = FALSE;
+                  }
+                  break;
                 }
+              }
+              if ($set_error) {
+                form_error($form[$required_fields[$row['field_name']]['in_group']][$row['field_name']],
+                  t('!name field is required.',
+                  array('!name' => $form[$required_fields[$row['field_name']]['in_group']][$row['field_name']]['#title'])));
               }
             }
           }
