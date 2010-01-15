@@ -348,22 +348,52 @@ function conditional_fields_content_admin_field(&$form) {
 
   // Check if field is in a group
   if (isset($form['widget']['group'])) {
-    $controlled_field_in_group = $form['widget']['group']['#value'];
+    $group_of_controlled_field = $form['widget']['group']['#value'];
   }
 
-  // Get available fields, which are:
+  // Get candidate controlling fields
   foreach ($type['fields'] as $field) {
-    // - Not this one :)
+    // - Exclude this one :)
     if ($field['field_name'] == $form['field_name']['#value']) {
       continue;
     }
-    // - AND fields not in a group (if this field isn't in a group), or fields in the same group.
-    if (isset($controlled_field_in_group)) {
-      if ($controlled_field_in_group != conditional_fields_get_group($field['type_name'], $field['field_name'])) {
+    // If a field is inside a controlled group, it can control or be controlled only by fields in the same group.
+    // This is needed to avoid uncontrollable loops.
+    // First we gather data about groups
+    $group_of_candidate_field = conditional_fields_get_group($field['type_name'], $field['field_name']);
+    if ($group_of_controlled_field || $group_of_candidate_field) {
+      $group_of_controlled_field_is_controlled = FALSE;
+      $group_of_candidate_field_is_controlled = FALSE;
+      foreach ($data as $row) {
+        if ($row['field_name'] == $group_of_controlled_field) {
+          $group_of_controlled_field_is_controlled = TRUE;
+        }
+        elseif ($row['field_name'] == $group_of_candidate_field) {
+          $group_of_candidate_field_is_controlled = TRUE;
+        }
+      }
+    }
+    // If the controlled field is in a group...
+    if ($group_of_controlled_field) {
+      // - Exclude candidates outside the controlled field's group if the group is controlled
+      if (!$group_of_candidate_field && $group_of_controlled_field_is_controlled) {
+        continue;
+      }
+      // - Exclude candidates in different groups if either group is controlled
+      elseif ($group_of_candidate_field &&
+              $group_of_candidate_field != $group_of_controlled_field &&
+              ($group_of_candidate_field_is_controlled || $group_of_controlled_field_is_controlled)) {
         continue;
       }
     }
-    // - AND with Allowed values
+    // Else if the controlled field is not in a group...
+    else {
+      // - Exclude fields in controlled groups
+      if ($group_of_candidate_field && $group_of_candidate_field_is_controlled) {
+        continue;
+      }
+    }
+    // - Exclude fields without Allowed values
     if (!$allowed_values[$field['field_name']] = content_allowed_values($field)) {
       continue;
     }
@@ -413,7 +443,7 @@ function conditional_fields_content_admin_field_controlling(&$form, $type, $cont
  * Controllable field settings form
  */
 function conditional_fields_content_admin_field_controllable(&$form, $type, $field_name, $available_fields, $allowed_values, $context) {
-  $description = '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields and groups within the same group as this one, and with <em>Allowed values</em> set, are available for control.', array('@context' => $context)) . '</p>';
+  $description = '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields with <em>Allowed values</em> set are available for control. If a field is inside a controlled group, it can control or be controlled only by fields in the same group.', array('@context' => $context)) . '</p>';
 
   conditional_fields_content_admin_field_fieldset($form, $description, TRUE);
 
@@ -471,6 +501,18 @@ function conditional_fields_content_admin_field_fieldset(&$form, $description, $
 function conditional_fields_fieldgroup_group_edit_form(&$form) {
   if (!user_access('administer conditional fields')) {
     return;
+  }
+
+  // A group that contains fields controlling or controlled by fields in other groups or no groups at all,
+  // cannot be a controlled group.
+  if ($data = conditional_fields_load_data($form['#content_type']['type'])) {
+    $groups = fieldgroup_groups($form['#content_type']['type']);
+    $group = $groups[$form['group_name']['#default_value']];
+    foreach ($data as $row) {
+      if (isset($group['fields'][$row['field_name']]) XOR isset($group['fields'][$row['control_field_name']])) {
+        return;
+      }
+    }
   }
 
   // Find fields with allowed values which are not inside a group
