@@ -5,29 +5,48 @@ if (!Drupal.ConditionalFields) {
 }
 
 Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
-  /* For each controlling field: find the controlled fields */
-  $.each(Drupal.settings.ConditionalFields.controlling_fields, function(controllingField, controlledFields) {
-    if (controllingField == id) {
-      /* Find the settings of the controlled field */
-      $.each(controlledFields, function(i, fieldSettings) {
-        var hideField = true;
-        /* Find the trigger values of the controlled field (for this controlling field) */
-        $.each(fieldSettings.trigger_values, function(ii, val) {
-          if (jQuery.inArray(val, values) != -1) {
-            Drupal.ConditionalFields.doAnimation(fieldSettings, 'show', onPageReady);
-            hideField = false;
-            /* Stop searching in this field */
-            return false;
-          }
-        });
-        if (hideField) {
-          Drupal.ConditionalFields.doAnimation(fieldSettings, 'hide', onPageReady);
+  // Check each controlled field
+  $.each(Drupal.settings.ConditionalFields.controlling_fields[id], function(i, controlledField) {
+    var triggers = Drupal.ConditionalFields.checkTriggered(controlledField, values);
+    // If the field was not triggered, hide it
+    if (!triggers) {
+      Drupal.ConditionalFields.doAnimation(controlledField, 'hide', onPageReady);
+    }
+    // Else check other controlling fields: if any one doesn't trigger, hide the field and stop checking
+    else {
+      var otherTriggers = true;
+      $.each(Drupal.settings.ConditionalFields.controlling_fields, function(ii, maybeControllingField) {
+        if (ii != id) {
+          $.each(maybeControllingField, function(iii, maybeControlledField) {
+            if (maybeControlledField.field_id == controlledField.field_id) {
+              otherTriggers = Drupal.ConditionalFields.checkTriggered(maybeControlledField, Drupal.ConditionalFields.findValues($(ii)));
+              if (!otherTriggers) {
+                return false;
+              }
+            }
+          });
         }
-        /* To do: Feature: Multiple controlling fields on the same field, are
-           not supported for now. Test: other controlling fields types and widgets. */
+        if (!otherTriggers) {
+          Drupal.ConditionalFields.doAnimation(controlledField, 'hide', onPageReady);
+          return false;
+        }
       });
+      if (otherTriggers) {
+        Drupal.ConditionalFields.doAnimation(controlledField, 'show', onPageReady);
+      }
     }
   });
+}
+
+Drupal.ConditionalFields.checkTriggered = function(controlledField, selectedValues) {
+  var triggers = false;
+  $.each(controlledField.trigger_values, function(ii, val) {
+    if (jQuery.inArray(val, selectedValues) !== -1) {
+      triggers = true;
+      return false;
+    }
+  });
+  return triggers;
 }
 
 Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPageReady) {

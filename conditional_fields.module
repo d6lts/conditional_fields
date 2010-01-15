@@ -500,13 +500,6 @@ function conditional_fields_content_admin_field_validate($form, &$form_state) {
   if ($form_state['values']['conditional_fields']) {
     $count_selected = 0;
     foreach ($form_state['values']['conditional_fields'] as $available_field => $trigger_values) {
-      // Disallow more than one controlling field until properly supported
-      if (count($trigger_values) > 1 || !$trigger_values['conditional_field_no_value']) {
-        $count_selected++;
-        if ($count_selected == 2) {
-          form_set_error('conditional_fields', t('You cannot select more than one controlling field.'));
-        }
-      }
       // Disallow selecting Not set and values at the same time
       if ($trigger_values['conditional_field_no_value'] && count($trigger_values) > 1) {
         form_set_error('conditional_fields][' . $available_field, t('You cannot select "Not controlling" and other values at the same time.'));
@@ -593,7 +586,7 @@ function conditional_fields_node_after_build($form, &$form_state) {
         $parent_name = $controlled_field_group;
       }
       elseif ($form['#field_info'][$item_name]['display_settings']['parent']) {
-        $parent_name = $form['#field_info'][$item_name]['display_settings']['parent'];        
+        $parent_name = $form['#field_info'][$item_name]['display_settings']['parent'];
       }
     }
 
@@ -739,7 +732,7 @@ function conditional_fields_item_in_form($form, $item_name, $group = FALSE) {
 
   if ($group) {
     if ($form[$group][$item_name]) {
-      $items[$item_name] = $form[$group][$item_name];      
+      $items[$item_name] = $form[$group][$item_name];
     }
     elseif ($form[$group][$form['#field_info'][$item_name]['display_settings']['parent']][$item_name]) {
       $items[$item_name] = $form[$group][$form['#field_info'][$item_name]['display_settings']['parent']][$item_name];
@@ -780,31 +773,44 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
     conditional_fields_add_js($form['#conditional_fields']['settings']);
   }
 
+  // Rebuild the array grouping the data by controlled fields
+  // Needed to handle multiple controlling field per controlled field
+  $controlled_fields = array();
   foreach ($form['#conditional_fields']['data'] as $row) {
-    // Check if the controlling field was triggered
-    $triggered = conditional_fields_is_triggered($form_state['values'][$row['control_field_name']], $row['trigger_values']);
+    $controlled_fields[$row['field_name']][$row['control_field_name']] = $row['trigger_values'];
+  }
+
+  foreach ($controlled_fields as $controlled_field_name => $controlling_fields) {
+    // Check if all controlling field were triggered
+    $triggered = FALSE;
+    foreach ($controlling_fields as $controlling_field_name => $trigger_values) {
+      $triggered = conditional_fields_is_triggered($form_state['values'][$controlling_field_name], $trigger_values);
+      if ($triggered == FALSE) {
+        break;
+      }
+    }
 
     $required_fields = $form['#conditional_fields']['required_fields'];
 
     // Controlled field
-    if (strpos($row['field_name'] , 'field_') === 0) {
+    if (strpos($controlled_field_name , 'field_') === 0) {
       if ($triggered) {
         // Check required
-        if (!empty($required_fields) && $required_fields[$row['field_name']]) {
+        if (!empty($required_fields) && $required_fields[$controlled_field_name]) {
 
           // Check if the controlled field is empty
-          if (conditional_fields_check_empty($form_state['values'][$row['field_name']])) {
+          if (conditional_fields_check_empty($form_state['values'][$controlled_field_name])) {
             // Check whether the controlled field is in a group or not and set error accordingly
-            if (!$required_fields[$row['field_name']]['in_group']) {
-              form_error($form[$row['field_name']],
+            if (!$required_fields[$controlled_field_name]['in_group']) {
+              form_error($form[$controlled_field_name],
                 t('!name field is required.',
-                array('!name' => $form[$row['field_name']]['#title'])));
+                array('!name' => $form[$controlled_field_name]['#title'])));
             }
             else {
               // Set error only if the containing group is not controlled or is controlled and triggered
               $set_error = TRUE;
               foreach ($form['#conditional_fields']['data'] as $row_check_containing_group) {
-                if ($row_check_containing_group['field_name'] == $required_fields[$row['field_name']]['in_group']) {
+                if ($row_check_containing_group['field_name'] == $required_fields[$controlled_field_name]['in_group']) {
                   if (!conditional_fields_is_triggered($form_state['values'][$row_check_containing_group['control_field_name']], $row_check_containing_group['trigger_values'])) {
                   $set_error = FALSE;
                   }
@@ -812,9 +818,9 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
                 }
               }
               if ($set_error) {
-                form_error($form[$required_fields[$row['field_name']]['in_group']][$row['field_name']],
+                form_error($form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name],
                   t('!name field is required.',
-                  array('!name' => $form[$required_fields[$row['field_name']]['in_group']][$row['field_name']]['#title'])));
+                  array('!name' => $form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name]['#title'])));
               }
             }
           }
@@ -824,31 +830,26 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
         // Do not submit values of controlled fields which were not triggered (except on preview)
         if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
           !in_array('node_form_build_preview', $form_state['submit_handlers']) &&
-          is_array($form['#field_info'][$row['field_name']]['widget']['default_value'])) {
-          foreach ($form['#field_info'][$row['field_name']]['widget']['default_value'] as $delta => $value) {
-            $form_state['values'][$row['field_name']][$delta]['value'] = $value['value'];
+          is_array($form['#field_info'][$controlled_field_name]['widget']['default_value'])) {
+          foreach ($form['#field_info'][$controlled_field_name]['widget']['default_value'] as $delta => $value) {
+            $form_state['values'][$controlled_field_name][$delta]['value'] = $value['value'];
           }
         }
       }
     }
-
     // Controlled group
-    elseif (strpos($row['field_name'] , 'group_') === 0) {
-
-      foreach (element_children($form[$row['field_name']]) as $field_in_group) {
-
+    elseif (strpos($controlled_field_name , 'group_') === 0) {
+      foreach (element_children($form[$controlled_field_name]) as $field_in_group) {
         // Check if the controlling field was triggered
         if ($triggered) {
-
           // Check required
           if (!empty($required_fields)
             && $required_fields[$field_in_group]
-            && !$form[$row['field_name']][$field_in_group]['#controlled_field']
+            && !$form[$controlled_field_name][$field_in_group]['#controlled_field']
             && conditional_fields_check_empty($form_state['values'][$field_in_group])) {
-
-            form_error($form[$row['field_name']][$field_in_group],
+              form_error($form[$controlled_field_name][$field_in_group],
               t('!name field is required.',
-              array('!name' => $form[$row['field_name']][$field_in_group]['#title'])));
+              array('!name' => $form[$controlled_field_name][$field_in_group]['#title'])));
           }
         }
         else {
