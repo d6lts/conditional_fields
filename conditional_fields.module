@@ -638,6 +638,7 @@ function conditional_fields_node_after_build($form, &$form_state) {
           if ($current_item[$group_element]['#required']) {
             conditional_fields_unset_required_field($current_item[$group_element]);
             $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $item_name);
+            $current_item[$group_element]['#theme'] = array('conditional_fields_form_item');
           }
         }
       }
@@ -657,8 +658,8 @@ function conditional_fields_node_after_build($form, &$form_state) {
     elseif ($is_group) {
       $group_id = 'conditional-' . conditional_fields_form_clean_id($item_name);
       // Group markup is still hardcoded.
-      $current_item['#prefix'] = '<div id="' . $group_id . '" class="conditional-field controlled-field">' . $form[$element]['#prefix'];
-      $current_item['#suffix'] = $form[$element]['#suffix'] . '</div>';
+      $current_item['#prefix'] = '<div id="' . $group_id . '" class="conditional-field controlled-field">' . $current_item['#prefix'];
+      $current_item['#suffix'] = $current_item['#suffix'] . '</div>';
     }
     $controlling_field['#controlling_field'] = $controlling_field['#field_name'];
     $controlling_field['#theme'] = array('conditional_fields_form_item');
