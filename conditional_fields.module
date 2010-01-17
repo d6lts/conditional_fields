@@ -715,7 +715,7 @@ function conditional_fields_node_after_build($form, &$form_state) {
     if ($is_group) {
       foreach (element_children($controlled_field) as $group_element) {
         if ($controlled_field[$group_element]['#required'] && !$controlled_fields[$group_element]) {
-          $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $controlled_field);
+          $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $controlled_field_name);
         }
       }
     }
@@ -791,10 +791,10 @@ function conditional_fields_item_apply_theme(&$element, $group_name = '') {
   }
   else {
     // Save a previously set function so it can be called before rendering the field
-    if ($element['#theme'] && $element['#theme'] != array('conditional_fields_form_item')) {
+    if ($element['#theme'] && $element['#theme'] != 'conditional_fields_form_item') {
       $element['#conditional_fields_theme'] = $element['#theme'];
     }
-    $element['#theme'] = array('conditional_fields_form_item');
+    $element['#theme'] = 'conditional_fields_form_item';
   }
 }
 
