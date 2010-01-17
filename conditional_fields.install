@@ -14,7 +14,8 @@ function conditional_fields_install() {
   // Increase module weight to 10, over fieldgroup.module which has 9.
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'conditional_fields'");
 
-  drupal_set_message(get_t('Conditional Fields installed. You should now <a href="!url">give the permission</a> to administer conditional fields to the desired roles.', array('!url' => url('admin/user/permissions', array('fragment' => 'module-conditional_fields')))));
+  $t = get_t();
+  drupal_set_message($t('Conditional Fields installed. You should now <a href="!url">give the permission</a> to administer conditional fields to the desired roles.', array('!url' => url('admin/user/permissions', array('fragment' => 'module-conditional_fields')))));
 }
 
 function conditional_fields_schema() {
