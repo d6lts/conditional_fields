@@ -295,12 +295,12 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
       break;
     case 'content_add_more_js':
       // Handle ahah multiple fields
-      $key = array_keys($form);
-      if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE field_name = '%s'", $key[0]))) {
-        $form[$key[0]]['#prefix'] .= '<div id="conditional-' . conditional_fields_form_clean_id($key[0]) . '" class="conditional-field controlled-field">';
-        $form[$key[0]]['#suffix'] = $form[$key[0]]['#suffix'] . '</div>';
-        foreach (element_children($form[$key[0]]) as $element) {
-          conditional_fields_unset_required_field($form[$key[0]][$element]);
+      foreach ($form as $item_name => $item) {
+        if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE field_name = '%s'", $item_name))) {
+          $form[$item_name]['#post_render'] = array_merge(array('conditional_fields_add_more_post_render'), (array)$form[$item_name]['#post_render']);
+          foreach (element_children($form[$item_name]) as $element) {
+            conditional_fields_unset_required_field($form[$item_name][$element]);
+          }
         }
       }
       break;
@@ -585,6 +585,11 @@ function conditional_fields_node_editing_form(&$form, $form_state) {
  * - Apply orphaned fields settings if applicable
  */
 function conditional_fields_node_after_build($form, &$form_state) {
+  // Avoid running twice when the form is rebuilt with AHAH
+  if ($form_state['clicked_button']['#ahah']) {
+    return $form;
+  }
+
   $type_name = $form['type']['#value'];
 
   // Do nothing if there are no conditional fields
@@ -680,6 +685,9 @@ function conditional_fields_node_after_build($form, &$form_state) {
           if ($current_item[$group_element]['#required']) {
             conditional_fields_unset_required_field($current_item[$group_element]);
             $required_fields[$group_element] = array('field' => $group_element, 'in_group' => $item_name);
+            if ($current_item[$group_element]['#theme']) {
+              $current_item[$group_element]['#conditional_fields_theme'] = $current_item[$group_element]['#theme'];
+            }
             $current_item[$group_element]['#theme'] = array('conditional_fields_form_item');
           }
         }
@@ -695,15 +703,20 @@ function conditional_fields_node_after_build($form, &$form_state) {
       if ($form['#field_info'][$item_name]['multiple']) {
         $current_item['#conditional_fields_multiple'] = TRUE;
       }
+      if ($current_item['#theme']) {
+        $current_item['#conditional_fields_theme'] = $current_item['#theme'];
+      }
       $current_item['#theme'] = array('conditional_fields_form_item');
     }
     elseif ($is_group) {
-      $group_id = 'conditional-' . conditional_fields_form_clean_id($item_name);
-      // Group markup is still hardcoded.
-      $current_item['#prefix'] = '<div id="' . $group_id . '" class="conditional-field controlled-field">' . $current_item['#prefix'];
-      $current_item['#suffix'] = $current_item['#suffix'] . '</div>';
+      $current_item['#group_id'] = 'conditional-' . conditional_fields_form_clean_id($item_name);
+      // We add themeing in post_render so the wrapping is outside the fieldset.
+      $current_item['#post_render'] = array_merge(array('conditional_fields_fieldgroup_post_render'), (array)$current_item['#post_render']);
     }
     $controlling_field['#controlling_field'] = $controlling_field['#field_name'];
+    if ($controlling_field['#theme']) {
+      $controlling_field['#conditional_fields_theme'] = $controlling_field['#theme'];
+    }
     $controlling_field['#theme'] = array('conditional_fields_form_item');
 
     // Save modified form items back to main form
@@ -1041,6 +1054,20 @@ function conditional_fields_add_js($settings) {
   }
 }
 
+/**
+ * post_render function to handle controlled fields after "add more" ahah request
+ */
+function conditional_fields_add_more_post_render($content, $item) {
+  return theme('conditional_fields_wrapper', $content, 'conditional-' . conditional_fields_form_clean_id($item['#field_name']), array('conditional-field', ' controlled-field'));
+}
+
+/**
+ * post_render function to make fieldgroup wrapping themeable
+ */
+function conditional_fields_fieldgroup_post_render($content, $item) {
+  return theme('conditional_fields_wrapper', $content, $item['#group_id'], array('conditional-field', ' controlled-field'));
+}
+
 /*
  * Clean conditional fields settings pertaining to this removed field
  */
@@ -1210,13 +1237,15 @@ function conditional_fields_unset_required_field(&$field) {
   }
 }
 
-
 /**
  * Implementation of hook_theme().
  */
 function conditional_fields_theme() {
     return array(
         'conditional_fields_form_item' => array(
+            'arguments' => array(),
+        ),
+        'conditional_fields_wrapper' => array(
             'arguments' => array(),
         ),
         'conditional_fields_manage_marker' => array(
@@ -1226,7 +1255,8 @@ function conditional_fields_theme() {
 }
 
 /**
- * Themes the wrappers around conditional fields.
+ * Prepares conditional fields for rendering and handles
+ * special cases.
  * Note that if you modify the id and classes of these fields,
  * you have to modify conditional_fields.js accordingly.
  */
@@ -1234,28 +1264,46 @@ function theme_conditional_fields_form_item($item) {
   if ($item['#required_field']) {
     $item = conditional_fields_set_required_field($item);
   }
-  if ($id = $item['#controlling_field']) {
-    return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlling-field">' . drupal_render($item) . '</div>';
-  }
-  elseif ($id = $item['#controlled_field']) {
-    if ($item['#type'] == 'markup') {
-      /* Manage ahah multiple fields */
-      if ($item['#conditional_fields_multiple']) {
-        return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . theme('content_multiple_values', $item) . '</div>';
-      }
-      /* Avoid unnecessary divs in other kinds of fields */
-      $item['#prefix'] = '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . $item['#prefix'];
-      $item['#suffix'] = $item['#suffix'] . '</div>';
-      return drupal_render($item);
-    }
-    /* Normal fields */
-    else {
-      return '<div id="conditional-' . conditional_fields_form_clean_id($id) . '" class="conditional-field controlled-field">' . drupal_render($item) . '</div>';
-    }
+
+  if ($item['#conditional_fields_theme']) {
+    $rendered_item = theme($item['#conditional_fields_theme'], $item);
   }
   else {
+    $rendered_item = drupal_render($item);
+  }
+
+  if (!$item['#controlling_field'] && !$item['#controlled_field']) {
+    return $rendered_item;
+  }
+
+  $id = 'conditional-' . conditional_fields_form_clean_id($item['#field_name']);
+  $classes = array('conditional-field');
+
+  if ($item['#controlled_field']) {
+    $classes[] = 'controlled-field';
+  }
+
+  if ($item['#controlling_field']) {
+    $classes[] = 'controlling-field';
+  }
+
+  /* Avoid unnecessary divs in other kinds of fields */
+  if ($item['#controlled_field'] && $item['#type'] == 'markup' && !$item['#conditional_fields_multiple']) {
+    $item['#prefix'] = '<div id="' . $id . '" class="' . implode(' ', $classes) . '">' . $item['#prefix'];
+    $item['#suffix'] = $item['#suffix'] . '</div>';
     return drupal_render($item);
   }
+
+  return theme('conditional_fields_wrapper', $rendered_item, $id, $classes);
+}
+
+/**
+ * Themes a wrapper around conditional fields.
+ * Note that if you modify the id and classes of these fields,
+ * you have to modify conditional_fields.js accordingly.
+ */
+function theme_conditional_fields_wrapper($content, $id, $classes) {
+  return '<div id="' . $id .'" class="' . implode(' ', $classes) . '">' . $content . '</div>';
 }
 
 /**
