@@ -907,7 +907,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
       else {
         // Do not submit values of controlled fields which were not triggered (except on preview)
         if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
-          !in_array('node_form_build_preview', $form_state['submit_handlers']) &&
+          !in_array('node_form_build_preview', (array)$form_state['submit_handlers']) &&
           is_array($form['#field_info'][$controlled_field_name]['widget']['default_value'])) {
           foreach ($form['#field_info'][$controlled_field_name]['widget']['default_value'] as $delta => $value) {
             $form_state['values'][$controlled_field_name][$delta]['value'] = $value['value'];
