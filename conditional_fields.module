@@ -361,6 +361,10 @@ function conditional_fields_content_admin_field(&$form) {
     if ($field['field_name'] == $form['field_name']['#value']) {
       continue;
     }
+    // - Exlude fields already controlled by this one
+    if ($controlled_fields[$field['field_name']]) {
+      continue;
+    }
     // - Exclude fields without Allowed values
     if (!$allowed_values[$field['field_name']] = content_allowed_values($field)) {
       continue;
