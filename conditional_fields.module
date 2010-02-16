@@ -366,7 +366,7 @@ function conditional_fields_content_admin_field(&$form) {
       continue;
     }
     // - Exclude fields without Allowed values
-    if (!$allowed_values[$field['field_name']] = content_allowed_values($field)) {
+    if (!$allowed_values[$field['field_name']] = conditional_fields_allowed_values($field)) {
       continue;
     }
     // If a field is inside a controlled group, it can control or be controlled only by fields in the same group.
@@ -536,7 +536,7 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
   foreach ($form['#content_type']['fields'] as $field) {
     $in_group = fieldgroup_get_group($form['#content_type']['type'], $field['field_name']);
     if (!$in_group) {
-      if ($allowed_values[$field['field_name']] = content_allowed_values($field)) {
+      if ($allowed_values[$field['field_name']] = conditional_fields_allowed_values($field)) {
         $available_fields[$field['field_name']] = $field;
       }
     }
@@ -600,6 +600,15 @@ function conditional_fields_forms_submit($form, &$form_state) {
       conditional_fields_save_field($type, $field_name, $form_state['values']['conditional_fields']['available_fields']);
     }
   }
+}
+
+/**
+ * Find the allowed values for a field
+ */
+function conditional_fields_allowed_values($field) {
+  $function = $field['module'] .'_allowed_values';
+  $options = function_exists($function) ? $function($field) : content_allowed_values($field);
+  return $options;
 }
 
 /**
