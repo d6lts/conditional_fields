@@ -1315,7 +1315,7 @@ function theme_conditional_fields_form_item($item) {
     return $rendered_item;
   }
 
-  $id = 'conditional-' . conditional_fields_form_clean_id($item['#field_name']);
+  $id = 'conditional-' . conditional_fields_form_clean_id($item['#field_name'] ? $item['#field_name'] : $item['#array_parents'][0]);
   $classes = array('conditional-field');
 
   if ($item['#controlled_fields']) {
