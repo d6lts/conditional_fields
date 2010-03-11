@@ -607,9 +607,20 @@ function conditional_fields_forms_submit($form, &$form_state) {
  * Find the allowed values for a field
  */
 function conditional_fields_allowed_values($field) {
+  static $options;
+  if ($options[$field['field_name']]) {
+    return $options[$field['field_name']];
+  }
+
   $function = $field['module'] .'_allowed_values';
-  $options = function_exists($function) ? $function($field) : content_allowed_values($field);
-  return $options;
+  $options[$field['field_name']] = function_exists($function) ? $function($field) : content_allowed_values($field);
+
+  // Strip tags, since we use a select, not the real widget.
+  foreach ($options[$field['field_name']] as $key => $label) {
+    $options[$field['field_name']][$key] = strip_tags($label);
+  }
+
+  return $options[$field['field_name']];
 }
 
 /**
