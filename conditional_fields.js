@@ -6,6 +6,9 @@ if (!Drupal.ConditionalFields) {
 
 Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
   // Check each controlled field
+  if (Drupal.settings.ConditionalFields.controlling_fields[id] == undefined) {
+    return;
+  }
   $.each(Drupal.settings.ConditionalFields.controlling_fields[id], function(i, controlledField) {
     var triggers = Drupal.ConditionalFields.checkTriggered(controlledField, values);
     // If the field was not triggered, hide it
