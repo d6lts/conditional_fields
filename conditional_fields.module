@@ -1,5 +1,6 @@
 <?php
 // $Id$
+
 /**
  * @file
  * Content fields and groups visibility based on the values of user defined 'trigger' fields.
@@ -895,25 +896,30 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
 
     $required_fields = $form['#conditional_fields']['required_fields'];
 
+    if ($required_fields[$controlled_field_name]['in_group']) {
+      $controlled_field = &$form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name];
+    }
+    else {
+      $controlled_field = &$form[$controlled_field_name];      
+    }
+
     // Controlled field
     if (strpos($controlled_field_name , 'field_') === 0) {
       if ($triggered) {
         // Check required
         if (!empty($required_fields) && $required_fields[$controlled_field_name]) {
-
+          $in_group = $required_fields[$controlled_field_name]['in_group'];
           // Check if the controlled field is empty
           if (conditional_fields_check_empty($form_state['values'][$controlled_field_name])) {
             // Check whether the controlled field is in a group or not and set error accordingly
-            if (!$required_fields[$controlled_field_name]['in_group']) {
-              form_error($form[$controlled_field_name],
-                t('!name field is required.',
-                array('!name' => $form[$controlled_field_name]['#title'])));
+            if (!$in_group) {
+              form_error($controlled_field, t('!name field is required.', array('!name' => $controlled_field['#title'])));
             }
             else {
               // Set error only if the containing group is not controlled or is controlled and triggered
               $set_error = TRUE;
               foreach ($form['#conditional_fields']['data'] as $row_check_containing_group) {
-                if ($row_check_containing_group['field_name'] == $required_fields[$controlled_field_name]['in_group']) {
+                if ($row_check_containing_group['field_name'] == $in_group) {
                   if (!conditional_fields_is_triggered($form_state['values'][$row_check_containing_group['control_field_name']], $row_check_containing_group['trigger_values'])) {
                   $set_error = FALSE;
                   }
@@ -921,9 +927,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
                 }
               }
               if ($set_error) {
-                form_error($form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name],
-                  t('!name field is required.',
-                  array('!name' => $form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name]['#title'])));
+                form_error($controlled_field, t('!name field is required.', array('!name' => $controlled_field['#title'])));
               }
             }
           }
@@ -931,38 +935,48 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
       }
       else {
         // Do not submit values of controlled fields which were not triggered (except on preview)
-        if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
-          !in_array('node_form_build_preview', (array)$form_state['submit_handlers']) &&
-          is_array($form['#field_info'][$controlled_field_name]['widget']['default_value'])) {
-          foreach ($form['#field_info'][$controlled_field_name]['widget']['default_value'] as $delta => $value) {
-            $form_state['values'][$controlled_field_name][$delta]['value'] = $value['value'];
-          }
+        if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1)
+          && !in_array('node_form_build_preview', (array)$form_state['submit_handlers'])) {
+            // Load default values like in content_field_form() in content.node_form.inc
+            $controlled_field_info = $form['#field_info'][$controlled_field_name];
+            if (content_callback('widget', 'default value', $controlled_field_info) != CONTENT_CALLBACK_NONE) {
+              $callback = content_callback('widget', 'default value', $controlled_field_info) == CONTENT_CALLBACK_CUSTOM ? $field['widget']['module'] .'_default_value' : 'content_default_value';
+              if (function_exists($callback)) {
+                $items = $callback($form, $form_state, $controlled_field_info, 0);
+              }
+            }
+            $form_state['values'][$controlled_field_name] = $items;
         }
       }
     }
     // Controlled group
     elseif (strpos($controlled_field_name , 'group_') === 0) {
-      foreach (element_children($form[$controlled_field_name]) as $field_in_group) {
+      foreach (element_children($controlled_field) as $field_in_group) {
         // Check if the controlling field was triggered
         if ($triggered) {
           // Check required
           if (!empty($required_fields)
             && $required_fields[$field_in_group]
-            && !$form[$controlled_field_name][$field_in_group]['#controlled_fields']
+            && !$controlled_field[$field_in_group]['#controlled_fields']
             && conditional_fields_check_empty($form_state['values'][$field_in_group])) {
-              form_error($form[$controlled_field_name][$field_in_group],
+              form_error($controlled_field[$field_in_group],
               t('!name field is required.',
-              array('!name' => $form[$controlled_field_name][$field_in_group]['#title'])));
+              array('!name' => $controlled_field[$field_in_group]['#title'])));
           }
         }
         else {
           // Do not submit values of controlled fields which were not triggered (except on preview)
           if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
-            !in_array('node_form_build_preview', $form_state['submit_handlers']) &&
-            is_array($form['#field_info'][$field_in_group]['widget']['default_value'])) {
-            foreach ($form['#field_info'][$field_in_group]['widget']['default_value'] as $delta => $value) {
-              $form_state['values'][$field_in_group][$delta]['value'] = $value['value'];
-            }
+            !in_array('node_form_build_preview', $form_state['submit_handlers'])) {
+              // Load default values like in content_field_form() in content.node_form.inc
+              $field_in_group_info = $form['#field_info'][$field_in_group];
+              if (content_callback('widget', 'default value', $field_in_group_info) != CONTENT_CALLBACK_NONE) {
+                $callback = content_callback('widget', 'default value', $field_in_group_info) == CONTENT_CALLBACK_CUSTOM ? $field['widget']['module'] .'_default_value' : 'content_default_value';
+                if (function_exists($callback)) {
+                  $items = $callback($form, $form_state, $field_in_group_info, 0);
+                }
+              }
+              $form_state['values'][$field_in_group] = $items;
           }
         }
       }
