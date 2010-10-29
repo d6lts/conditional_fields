@@ -41,6 +41,7 @@ function conditional_fields_schema() {
         'size' => 'medium',
         'not null' => TRUE)
         ),
+      'primary key' => array('control_field_name', 'field_name', 'type'),
     );
 
   return $schema;
@@ -57,4 +58,14 @@ function conditional_fields_uninstall() {
   db_query("DELETE FROM {variable} WHERE name LIKE 'c_fields_%'");
   cache_clear_all('variables', 'cache');
 
+}
+
+/**
+ * Add primary key to table
+ */
+function conditional_fields_update_6002() {
+  $ret = array();
+  db_add_primary_key($ret, 'conditional_fields', array('control_field_name', 'field_name', 'type'));
+  
+  return $ret;
 }
