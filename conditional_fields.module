@@ -278,7 +278,7 @@ function conditional_fields_nodeapi(&$node, $op, $teaser, $page) {
 function conditional_fields_form_alter(&$form, $form_state, $form_id) {
   switch ($form_id) {
     case 'content_field_edit_form':
-      if ($form['widget'] && $form_state['post']['op'] != t('Change basic information')) {
+      if ($form['widget'] && isset($form_state['post']['op']) && $form_state['post']['op'] != t('Change basic information')) {
         conditional_fields_content_admin_field($form);
       }
       break;
@@ -328,7 +328,6 @@ function conditional_fields_content_admin_field(&$form) {
 
   // Load conditional fields data.
   $data = conditional_fields_load_data($type['type']);
-
   // Get all fields controlled by this one.
   $controlled_fields = array();
   foreach ($data as $row) {
@@ -900,7 +899,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
       $controlled_field = &$form[$required_fields[$controlled_field_name]['in_group']][$controlled_field_name];
     }
     else {
-      $controlled_field = &$form[$controlled_field_name];      
+      $controlled_field = &$form[$controlled_field_name];
     }
 
     // Controlled field
@@ -1030,7 +1029,7 @@ function conditional_fields_load_data($type, $structure = 'row', $reset = FALSE)
   if ($reset) {
     unset($data);
   }
-  if (!$data[$structure][$type]) {
+  if (!isset($data[$structure][$type])) {
     $data[$structure][$type] = array();
     if ($structure == 'row') {
       $query = db_query("SELECT control_field_name, field_name, trigger_values FROM {conditional_fields} WHERE type = '%s'", $type);
@@ -1340,7 +1339,7 @@ function conditional_fields_theme() {
  * you have to modify conditional_fields.js accordingly.
  */
 function theme_conditional_fields_form_item($item) {
-  if ($item['#conditional_fields_required']) {
+  if (isset($item['#conditional_fields_required']) && $item['#conditional_fields_required']) {
     $item = conditional_fields_set_required_field($item);
   }
 
