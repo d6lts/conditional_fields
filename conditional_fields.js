@@ -6,7 +6,7 @@ if (!Drupal.ConditionalFields) {
 
 Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
   // Check each controlled field
-  if (Drupal.settings.ConditionalFields.controlling_fields[id] == undefined) {
+  if (Drupal.settings.ConditionalFields.controlling_fields == undefined || Drupal.settings.ConditionalFields.controlling_fields[id] == undefined) {
     return;
   }
   $.each(Drupal.settings.ConditionalFields.controlling_fields[id], function(i, controlledField) {
