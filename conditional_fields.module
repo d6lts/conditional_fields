@@ -706,7 +706,7 @@ function conditional_fields_node_after_build($form, &$form_state) {
           $triggered = TRUE;
           foreach ($controlling_fields as $controlling_field_name => $controlling_field_descendants) {
             if ($controlling_field_descendants[$controlled_field_name]) {
-              if (!conditional_fields_is_triggered($form_state['values'][$controlled_field_name], $controlling_field_descendants[$controlled_field_name])) {
+              if (!conditional_fields_is_triggered($form_state['values'][$controlling_field_name], $controlling_field_descendants[$controlled_field_name])) {
                 $triggered = FALSE;
                 break;
               }
