@@ -148,7 +148,7 @@ function _conditional_fields_admin($form, $type) {
   $form['show_all'] = array(
     '#type' => 'checkbox',
     '#title' => t('Administrators see all fields'),
-    '#description' => t('Select this box to let users with the <a href="@access-control-page">administer conditional fields</a> permission to view all controlled fields of a node.', array('@access-control-page' => url('admin/user/permissions', array('fragment' => 'module-conditional_fields')))),
+    '#description' => t('Select this box to always show controlled fields to users with the <a href="@access-control-page">administer conditional fields</a> permission when viewing a node.', array('@access-control-page' => url('admin/user/permissions', array('fragment' => 'module-conditional_fields')))),
     '#default_value' => variable_get('c_fields_show_all_' . $type, 0)
   );
   $form['delete'] = array(
