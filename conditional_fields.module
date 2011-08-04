@@ -966,7 +966,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
         else {
           // Do not submit values of controlled fields which were not triggered (except on preview)
           if (variable_get('c_fields_reset_default_' . $form['type']['#value'], 1) &&
-            !in_array('node_form_build_preview', $form_state['submit_handlers'])) {
+            !isset($form_state['node_preview'])) {
               // Load default values like in content_field_form() in content.node_form.inc
               $field_in_group_info = $form['#field_info'][$field_in_group];
               if (content_callback('widget', 'default value', $field_in_group_info) != CONTENT_CALLBACK_NONE) {
