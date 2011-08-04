@@ -939,7 +939,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
             // Load default values like in content_field_form() in content.node_form.inc
             $controlled_field_info = $form['#field_info'][$controlled_field_name];
             if (content_callback('widget', 'default value', $controlled_field_info) != CONTENT_CALLBACK_NONE) {
-              $callback = content_callback('widget', 'default value', $controlled_field_info) == CONTENT_CALLBACK_CUSTOM ? $field['widget']['module'] .'_default_value' : 'content_default_value';
+              $callback = content_callback('widget', 'default value', $controlled_field_info) == CONTENT_CALLBACK_CUSTOM ? $controlled_field_info['widget']['module'] .'_default_value' : 'content_default_value';
               if (function_exists($callback)) {
                 $items = $callback($form, $form_state, $controlled_field_info, 0);
               }
