@@ -104,8 +104,8 @@ function _conditional_fields_admin($form, $type) {
     '#default_value' => variable_get('c_fields_animation_' . $type, C_FIELDS_ANIMATION_NO),
     '#options' => array(
       C_FIELDS_ANIMATION_NO => t('No animation'),
-      C_FIELDS_ANIMATION_FADE => t('Slide down'),
-      C_FIELDS_ANIMATION_SLIDE => t('Fade'),
+      C_FIELDS_ANIMATION_FADE => t('Fade'),
+      C_FIELDS_ANIMATION_SLIDE => t('Slide down'),
     ),
   );
   $form['js_set']['anim']['anim_speed'] = array(
