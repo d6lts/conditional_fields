@@ -362,7 +362,7 @@ function conditional_fields_content_admin_field(&$form) {
       continue;
     }
     // - Exclude fields already controlled by this one
-    if (!empty($controlled_fields[$field['field_name']])) {
+    if (isset($controlled_fields[$field['field_name']])) {
       continue;
     }
     // - Exclude fields without Allowed values
@@ -426,7 +426,7 @@ function conditional_fields_content_admin_field(&$form) {
       '#title' => t('Conditional fields settings'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
-      '#collapsed' => is_null($default_values),
+      '#collapsed' => empty($default_values),
       '#weight' => 8,
       '#attributes' => array('id' => 'conditional-fields-settings'),
     );
@@ -550,7 +550,7 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
       '#title' => t('Conditional fields settings'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
-      '#collapsed' => is_null($default_values),
+      '#collapsed' => empty($default_values),
       '#weight' => 8,
       '#attributes' => array('id' => 'conditional-fields-settings'),
     );
@@ -607,16 +607,15 @@ function conditional_fields_forms_submit($form, &$form_state) {
  */
 function conditional_fields_allowed_values($field) {
   static $options;
-  if (!empty($options[$field['field_name']])) {
-    return $options[$field['field_name']];
-  }
 
-  $function = $field['module'] .'_allowed_values';
-  $options[$field['field_name']] = function_exists($function) ? $function($field) : content_allowed_values($field);
+  if (!isset($options[$field['field_name']])) {
+    $function = $field['module'] .'_allowed_values';
+    $options[$field['field_name']] = function_exists($function) ? $function($field) : content_allowed_values($field);
 
-  // Strip tags, since we use a select, not the real widget.
-  foreach ($options[$field['field_name']] as $key => $label) {
-    $options[$field['field_name']][$key] = strip_tags($label);
+    // Strip tags, since we use a select, not the real widget.
+    foreach ($options[$field['field_name']] as $key => $label) {
+      $options[$field['field_name']][$key] = strip_tags($label);
+    }
   }
 
   return $options[$field['field_name']];
