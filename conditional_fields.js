@@ -77,6 +77,9 @@ Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPag
         showOrHide == 'show' ? toSwitch.show() : toSwitch.hide();
         break;
       case 1:
+        showOrHide == 'show' ? toSwitch.fadeIn(Drupal.settings.ConditionalFields.ui_settings.anim_speed) :
+                               toSwitch.fadeOut(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
+      case 2:
         /* Don't double top and bottom margins while sliding. */
         var firstChild = toSwitch.children(':first-child');
         var marginTop = firstChild.css('margin-top');
@@ -93,9 +96,6 @@ Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPag
           });
         }
         break;
-      case 2:
-        showOrHide == 'show' ? toSwitch.fadeIn(Drupal.settings.ConditionalFields.ui_settings.anim_speed) :
-                               toSwitch.fadeOut(Drupal.settings.ConditionalFields.ui_settings.anim_speed);
     }
   }
 }
