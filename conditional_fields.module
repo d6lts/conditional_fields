@@ -1291,12 +1291,44 @@ function conditional_fields_set_required_field_recurse(&$item) {
  * Unset the #required property and set a #conditional_fields_required property for custom validation.
  */
 function conditional_fields_custom_required_field(&$field) {
-  if ($field['#required']) {
+  if (isset($field['#required']) && $field['#required']) {
     unset($field['#required']);
     $field['#conditional_fields_required'] = TRUE;
+
+    // Required radio buttons without a default value need custom validation,
+    // otherwise _form_validate will think that an invalid choice is selected
+    // when the field is submitted with no value.
+    if ($field['#type'] == 'radios' && !$field['#default_value'] && isset($field['#needs_validation']) && $field['#needs_validation']) {
+      unset($field['#needs_validation']);
+      $field['#element_validate'] = array_merge(array('conditional_fields_required_radios_validate'), (array) $field['#validate']);
+    }
   }
   foreach (element_children($field) as $child) {
     conditional_fields_custom_required_field($field[$child]);
+  }
+}
+
+
+/**
+ * Custom validation for radio buttons.
+ * Reproduces the behavior of _form_validate, while adding an empty option.
+ */
+function conditional_fields_required_radios_validate($elements) {
+  $elements['#options'][''] = t('N/A');
+
+  if (isset($elements['#options']) && isset($elements['#value'])) {
+    if (is_array($elements['#value'])) {
+      foreach ($elements['#value'] as $v) {
+        if (!isset($elements['#options'][$v])) {
+          form_error($elements, t('An illegal choice has been detected. Please contact the site administrator.'));
+          watchdog('form', 'Illegal choice %choice in !name element.', array('%choice' => $v, '!name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
+        }
+      }
+    }
+    elseif (!isset($elements['#options'][$elements['#value']])) {
+      form_error($elements, t('An illegal choice has been detected. Please contact the site administrator.'));
+      watchdog('form', 'Illegal choice %choice in %name element.', array('%choice' => $elements['#value'], '%name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
+    }
   }
 }
 
