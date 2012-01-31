@@ -1077,14 +1077,31 @@ function conditional_fields_field_overview_form(&$form) {
 }
 
 /**
- * Conditional fields can't change group.
+ * Conditional fields in some situations can't change group.
  */
 function conditional_fields_field_overview_form_validate($form, $form_state) {
-  $data = conditional_fields_load_data($form['#type_name'], 'flat');
+  $data = conditional_fields_load_data($form['#type_name']);
 
-  foreach ($form['#fields'] as $field_name) {
-    if (!empty($data[$field_name]) && !empty($form_state['values'][$field_name]['parent']) && !empty($form_state['values'][$field_name]['prev_parent']) && $form_state['values'][$field_name]['parent'] != $form_state['values'][$field_name]['prev_parent']) {
-      form_set_error('', t("You can't change the parent group of a conditional field."));
+  // Build a list of controlled fields/groups.
+  $controlled_fields = array();
+  foreach ($data as $dependency) {
+    $controlled_fields[$dependency['field_name']] = $dependency['field_name'];
+  }
+
+  foreach ($data as $dependency) {
+    // If a field is inside a controlled group, it can control or be controlled only by fields in the same group,
+    // so moving fields in disallowed positions is forbidden.
+    $controlling_group = $form_state['values'][$dependency['control_field_name']]['parent'];
+    $controlled_group = $form_state['values'][$dependency['field_name']]['parent'];
+
+    // If the fields share the same parent (no group or same group), allow moving.
+    if ($controlling_group == $controlled_group) {
+      continue;
+    }
+
+    // If the fields have different parents, only allow parents that are not controlled.
+    if (in_array($controlling_group, $controlled_fields) || in_array($controlled_group, $controlled_fields)) {
+      form_set_error('', t('Fields inside a controlled group can only be controlling or be controlled by a field in the same group.'));
     }
   }
 }
