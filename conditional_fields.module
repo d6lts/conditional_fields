@@ -300,7 +300,7 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
         if (db_result(db_query("SELECT COUNT(*) FROM {conditional_fields} WHERE field_name = '%s'", $item_name))) {
           $form[$item_name]['#post_render'] = array_merge(array('conditional_fields_add_more_post_render'), (array)$form[$item_name]['#post_render']);
           foreach (element_children($form[$item_name]) as $element) {
-            conditional_fields_custom_required_field($form[$item_name][$element]);
+            conditional_fields_custom_required_field($form[$item_name][$element], $form['#field_info'][$item_name]);
           }
         }
       }
@@ -767,11 +767,11 @@ function conditional_fields_node_after_build($form, &$form_state) {
   // we need to unset the #required property and perform a custom validation.
   foreach ($required_fields as $field) {
     if ($field['in_group']) {
-      conditional_fields_custom_required_field($form[$field['in_group']][$field['field']]);
+      conditional_fields_custom_required_field($form[$field['in_group']][$field['field']], $form['#field_info'][$field['field']]);
       conditional_fields_item_apply_theme($form[$field['in_group']][$field['field']]);
     }
     else {
-      conditional_fields_custom_required_field($form[$field['field']]);
+      conditional_fields_custom_required_field($form[$field['field']], $form['#field_info'][$field['field']]);
       conditional_fields_item_apply_theme($form[$field['field']]);
     }
   }
@@ -908,7 +908,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
         if (!empty($required_fields) && $required_fields[$controlled_field_name]) {
           $in_group = $required_fields[$controlled_field_name]['in_group'];
           // Check if the controlled field is empty
-          if (conditional_fields_check_empty($form_state['values'][$controlled_field_name])) {
+          if (conditional_fields_is_empty($form_state['values'][$controlled_field_name], $in_group ? $form[$in_group][$controlled_field_name] : $form[$controlled_field_name], $form['#field_info'][$controlled_field_name])) {
             // Check whether the controlled field is in a group or not and set error accordingly
             if (!$in_group) {
               form_error($controlled_field, t('!name field is required.', array('!name' => $controlled_field['#title'])));
@@ -948,7 +948,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
       }
     }
     // Controlled group
-    elseif (strpos($controlled_field_name , 'group_') === 0) {
+    elseif (strpos($controlled_field_name, 'group_') === 0) {
       foreach (element_children($controlled_field) as $field_in_group) {
         // Check if the controlling field was triggered
         if ($triggered) {
@@ -956,7 +956,7 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
           if (!empty($required_fields)
             && $required_fields[$field_in_group]
             && !$controlled_field[$field_in_group]['#controlled_fields']
-            && conditional_fields_check_empty($form_state['values'][$field_in_group])) {
+            && conditional_fields_is_empty($form_state['values'][$field_in_group], $form[$controlled_field_name][$field_in_group], $form['#field_info'][$field_in_group])) {
               form_error($controlled_field[$field_in_group],
               t('!name field is required.',
               array('!name' => $controlled_field[$field_in_group]['#title'])));
@@ -983,23 +983,39 @@ function conditional_fields_node_editing_form_validate($form, &$form_state) {
 }
 
 /**
- * Checks if a submitted field value is empty
+ * Checks if a submitted field value is empty.
  */
-function conditional_fields_check_empty($field) {
-  // Normal fields
-  if (isset($field[0]['value'])) {
-    $value = $field[0]['value'];
-  }
-  // Node reference
-  elseif (isset($field[0]['nid'])) {
-    $value = $field[0]['nid'];
+function conditional_fields_is_empty($item, $field, $field_info) {
+  // First, check if the module that provides the field implements
+  // hook_content_is_empty, and, if so, use it.
+  if (in_array($field_info['module'], module_implements('content_is_empty'))) {
+    $empty = $field_info['module'] . '_content_is_empty';
+    return $empty($item, $field);
   }
 
-  if (!count($value) || (is_string($value) && drupal_strlen(trim($value)) == 0)) {
+  $value = NULL;
+
+  // Attempt to extract the key from "_error_element".
+  if (isset($item[0]['_error_element'])) {
+    $error_tree = explode('][', $item[0]['_error_element']);
+    $key = array_pop($error_tree);
+
+    if (isset($item[0][$key])) {
+      $value = $item[0][$key];
+    }
+  }
+
+  // Last resort: maybe the field uses a generic "value" key.
+  if (is_null($value) && isset($item[0]['value'])) {
+    $value = $item[0]['value'];
+  }
+  else {
+    // If no value was found, assume that the field is empty,
+    // which may be annoying, but prevents saving incomplete data.
     return TRUE;
   }
 
-  return FALSE;
+  return !count($value) || (is_string($value) && drupal_strlen(trim($value)) == 0);
 }
 
 /**
@@ -1307,10 +1323,16 @@ function conditional_fields_set_required_field_recurse(&$item) {
 /**
  * Unset the #required property and set a #conditional_fields_required property for custom validation.
  */
-function conditional_fields_custom_required_field(&$field) {
+function conditional_fields_custom_required_field(&$field, &$field_info = NULL) {
   if (isset($field['#required']) && $field['#required']) {
     unset($field['#required']);
     $field['#conditional_fields_required'] = TRUE;
+
+    // Some modules like FileField use the field info property to check if the
+    // field is required, so change it.
+    if ($field_info) {
+      $field_info['required'] = '0';
+    }
 
     // Required radio buttons without a default value need custom validation,
     // otherwise _form_validate will think that an invalid choice is selected
