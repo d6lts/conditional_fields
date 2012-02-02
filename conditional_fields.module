@@ -484,14 +484,14 @@ function conditional_fields_content_admin_field_controllable($type, $default_val
     '#title' => t('Controlling fields'),
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
-    '#description' => '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If no value is set, the @context will be always visible. Only fields with <em>Allowed values</em> set are available for control. If a field is inside a controlled group, it can control or be controlled only by fields in the same group.', array('@context' => $context)) . '</p>',
+    '#description' => '<p>' . t('Choose which allowed values of available controlling fields will trigger this @context, making it visible both in node editing and view. If the <em>- Not controlling -</em> option or no option is selected, the @context will be always visible. If the <em>- None (empty value) -</em> option is selected, the controlled field will be visible only when the controlling field has no value. Only fields with <em>Allowed values</em> set are available for control. If a field is inside a controlled group, it can control or be controlled only by fields in the same group.', array('@context' => $context)) . '</p>',
   );
 
   // Create selection lists
   foreach ($available_fields as $field) {
     $allowed_values[$field['field_name']] = array('conditional_field_no_value' => t('- Not controlling -')) + $allowed_values[$field['field_name']];
 
-    if (isset($default_values[$field['field_name']]) && $default_values[$field['field_name']] != FALSE) {
+    if (!empty($default_values[$field['field_name']])) {
       $default_value = $default_values[$field['field_name']];
     }
     else {
@@ -575,6 +575,10 @@ function conditional_fields_content_admin_field_validate($form, &$form_state) {
       if (!empty($trigger_values['conditional_field_no_value']) && count($trigger_values) > 1) {
         form_set_error('conditional_fields][' . $available_field, t('You cannot select "Not controlling" and other values at the same time.'));
       }
+      // Disallow selecting "None (empty value)" and values at the same time.
+      if (isset($trigger_values['']) && count($trigger_values) > 1) {
+        form_set_error('conditional_fields][' . $available_field, t('You cannot select "None (empty value)" and other values at the same time.'));
+      }
     }
   }
   else {
@@ -611,6 +615,15 @@ function conditional_fields_allowed_values($field) {
   if (!isset($options[$field['field_name']])) {
     $function = $field['module'] .'_allowed_values';
     $options[$field['field_name']] = function_exists($function) ? $function($field) : content_allowed_values($field);
+
+    if (empty($options[$field['field_name']])) {
+      return FALSE;
+    }
+
+    // Add an empty allowed value to unrequired single value fields.
+    if (!$field['required'] && !$field['multiple']) {
+      $options[$field['field_name']] = array_merge(array('' => t('- None (empty value) -')), $options[$field['field_name']]);
+    }
 
     // Strip tags, since we use a select, not the real widget.
     foreach ($options[$field['field_name']] as $key => $label) {
