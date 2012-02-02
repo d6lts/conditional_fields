@@ -1314,27 +1314,10 @@ function conditional_fields_delete_field($type_name, $controlled_field, $control
 }
 
 /**
- * Wrapper for conditional_fields_set_required_field_recurse
- */
-function conditional_fields_set_required_field($item) {
-  conditional_fields_set_required_field_recurse($item);
-  return $item;
-};
-
-/**
- * Recursive function to set required for all conditionally required fields.
- * This causes Drupal to render conditionally required fields in a way that
- * indicates they are required when visible.
- */
-function conditional_fields_set_required_field_recurse(&$item) {
-  $item['#required'] = TRUE;
-  foreach (element_children($item) as $child) {
-    conditional_fields_set_required_field_recurse($item[$child]);
-  }
-}
-
-/**
- * Unset the #required property and set a #conditional_fields_required property for custom validation.
+ * Unset the #required property and set a #conditional_fields_required property
+ * for custom validation.
+ *
+ * @see conditional_fields_set_required_field()
  */
 function conditional_fields_custom_required_field(&$field, &$field_info = NULL) {
   if (isset($field['#required']) && $field['#required']) {
@@ -1383,6 +1366,24 @@ function conditional_fields_required_radios_validate($elements) {
     }
   }
 }
+
+/**
+ * Marks as required a conditionally required form item and its descendants.
+ *
+ * Since this function is called from a theme function, the item will appear
+ * required, but it won't be actually required.
+ *
+ * @see conditional_fields_custom_required_field()
+ */
+function conditional_fields_set_required_field($item) {
+  if (!empty($item['#conditional_fields_required'])) {
+    $item['#required'] = TRUE;
+  }
+  foreach (element_children($item) as $child) {
+    $item[$child] = conditional_fields_set_required_field($item[$child]);
+  }
+  return $item;
+};
 
 /**
  * Implementation of hook_features_api() (features module).
