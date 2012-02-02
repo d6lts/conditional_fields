@@ -1246,7 +1246,7 @@ function conditional_fields_content_fieldapi($ops, $field) {
   }
   // Import conditional fields definitions with content_copy module
   elseif ($ops == 'create instance') {
-    if ($field['conditional_fields']['available_fields']) {
+    if (isset($field['conditional_fields']['available_fields']) && !empty($field['conditional_fields']['available_fields'])) {
       conditional_fields_save_field($field['type_name'], $field['field_name'], $field['conditional_fields']['available_fields']);
     }
   }
