@@ -4,23 +4,23 @@ if (!Drupal.ConditionalFields) {
 }
 
 Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
-  var controllingFields = Drupal.settings.ConditionalFields.controlling_fields,
+  var settings = Drupal.settings.ConditionalFields[Drupal.ConditionalFields.currentForm.find('input[name="form_build_id"]').val()],
       cF = Drupal.ConditionalFields;
 
   // Check each controlled field
-  if (controllingFields == undefined || controllingFields[id] == undefined) {
+  if (settings.controlling_fields == undefined || settings.controlling_fields[id] == undefined) {
     return;
   }
-  $.each(controllingFields[id], function(i, controlledField) {
+  $.each(settings.controlling_fields[id], function(i, controlledField) {
     var triggers = cF.checkTriggered(controlledField, values);
     // If the field was not triggered, hide it
     if (!triggers) {
-      cF.doAnimation(controlledField, 'hide', onPageReady);
+      cF.doAnimation(settings.ui_settings, controlledField, 'hide', onPageReady);
     }
     // Else check other controlling fields: if any one doesn't trigger, hide the field and stop checking
     else {
       var otherTriggers = true;
-      $.each(controllingFields, function(ii, maybeControllingField) {
+      $.each(settings.controlling_fields, function(ii, maybeControllingField) {
         if (ii != id) {
           $.each(maybeControllingField, function(iii, maybeControlledField) {
             if (maybeControlledField.field_id == controlledField.field_id) {
@@ -32,12 +32,12 @@ Drupal.ConditionalFields.switchField = function(id, values, onPageReady) {
           });
         }
         if (!otherTriggers) {
-          cF.doAnimation(controlledField, 'hide', onPageReady);
+          cF.doAnimation(settings.ui_settings, controlledField, 'hide', onPageReady);
           return false;
         }
       });
       if (otherTriggers) {
-        cF.doAnimation(controlledField, 'show', onPageReady);
+        cF.doAnimation(settings.ui_settings, controlledField, 'show', onPageReady);
       }
     }
   });
@@ -54,14 +54,12 @@ Drupal.ConditionalFields.checkTriggered = function(controlledField, selectedValu
   return triggers;
 }
 
-Drupal.ConditionalFields.doAnimation = function(fieldSettings, showOrHide, onPageReady) {
-  var uiSettings = Drupal.settings.ConditionalFields.ui_settings;
-
+Drupal.ConditionalFields.doAnimation = function(uiSettings, fieldSettings, showOrHide, onPageReady) {
   /* Multiple fields are enclosed in a wrapper */
   if ($(fieldSettings.field_id).parents('#' + fieldSettings.field_id.substring(13) + '-add-more-wrapper').length == 1) {
-    var toSwitch = $('#' + fieldSettings.field_id.substring(13) + '-add-more-wrapper');
+    var toSwitch = $('#' + fieldSettings.field_id.substring(13) + '-add-more-wrapper', Drupal.ConditionalFields.currentForm);
   } else {
-    var toSwitch = $(fieldSettings.field_id);
+    var toSwitch = $(fieldSettings.field_id, Drupal.ConditionalFields.currentForm);
   }
 
   if (uiSettings == 'disable') {
@@ -106,19 +104,23 @@ Drupal.ConditionalFields.findValues = function(field) {
 }
 
 Drupal.ConditionalFields.fieldChange = function() {
+  Drupal.ConditionalFields.currentForm = $(this).parents('form').eq(0);
+
   var wrapper = $(this).parents('.controlling-field').eq(0),
       values = Drupal.ConditionalFields.findValues(wrapper),
       id = '#' + wrapper.attr('id');
+
   Drupal.ConditionalFields.switchField(id, values, false);
 }
 
 Drupal.behaviors.ConditionalFields = function (context) {
   $('.conditional-field.controlling-field:not(.conditional-field-processed)').addClass('conditional-field-processed').each(function () {
     /* Set default state */
+    Drupal.ConditionalFields.currentForm = $(this).parents('form').eq(0);
     Drupal.ConditionalFields.switchField('#' + $(this).attr('id'), Drupal.ConditionalFields.findValues($(this)), true);
     $(this).find('select, input:radio, input:checkbox').each(function() {
       /* Apparently, Explorer doesn't catch the change event? */
-      $.browser.msie == true ? $(this).click(Drupal.ConditionalFields.fieldChange) : $(this).change(Drupal.ConditionalFields.fieldChange);      
+      $.browser.msie == true ? $(this).click(Drupal.ConditionalFields.fieldChange) : $(this).change(Drupal.ConditionalFields.fieldChange);
     })
     .end().find('textarea, input:text').each(function() {
       $(this).keyup(Drupal.ConditionalFields.fieldChange);

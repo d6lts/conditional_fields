@@ -788,6 +788,12 @@ function conditional_fields_node_after_build($form, &$form_state) {
       break;
   }
 
+  // Key settings by an unique identifier so we can have multiple node forms
+  // with conditional fields in the same page. We use the form build id since
+  // the form's id might not be unique.
+  $js_id = $form['#build_id'];
+  $js_settings = array($js_id => $js_settings);
+
   if ($ui_settings != C_FIELDS_JS_NO) {
     conditional_fields_add_js($js_settings);
   }
@@ -1138,15 +1144,22 @@ function conditional_fields_available_fields_default_values($control_field, $con
 }
 
 /**
- * Adds javascript to the node editing form
+ * Adds javascript to the node editing form.
+ *
+ * This function ensures that the settings are added only once for each form
+ * on the page that includes conditional fields.
+ *
+ * @param $settings
+ *   An array of settings keyed by the form's #build_id property.
  */
 function conditional_fields_add_js($settings) {
-  // Avoid adding js twice when the node form has failed validation
   static $js;
-  if (!$js) {
+  $build_id = current(array_keys($settings));
+
+  if (!isset($js[$build_id])) {
     drupal_add_js(array('ConditionalFields' => $settings), 'setting');
     drupal_add_js(drupal_get_path('module', 'conditional_fields') . '/conditional_fields.js');
-    $js = TRUE;
+    $js[$build_id] = TRUE;
   }
 }
 
