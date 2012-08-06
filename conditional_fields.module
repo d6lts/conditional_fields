@@ -308,6 +308,12 @@ function conditional_fields_form_alter(&$form, $form_state, $form_id) {
     case 'content_copy_import_form':
       $form['#submit'][] = 'conditional_fields_import';
       break;
+    // Compatibility with Content Profile User Registration module.
+    case 'user_register':
+      if (isset($form['#content_profile_registration_use_types'])) {
+        conditional_fields_node_form($form, $form_state);
+      }
+      break;
   }
 
   if (isset($form['type']['#value']) && $form_id == $form['type']['#value'] . '_node_form') {
