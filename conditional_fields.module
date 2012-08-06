@@ -532,10 +532,10 @@ function conditional_fields_fieldgroup_group_edit_form(&$form) {
     }
   }
 
-  // Find fields with allowed values which are not inside a group
+  // Find fields with allowed values which are not inside a group or are in the same group of this group.
   foreach ($form['#content_type']['fields'] as $field) {
     $in_group = fieldgroup_get_group($form['#content_type']['type'], $field['field_name']);
-    if (!$in_group) {
+    if (!$in_group || $in_group == $form['parent']['#default_value']) {
       if ($allowed_values[$field['field_name']] = conditional_fields_allowed_values($field)) {
         $available_fields[$field['field_name']] = $field;
       }
