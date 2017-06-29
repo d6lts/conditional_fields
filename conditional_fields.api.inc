@@ -12,21 +12,6 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 
 /**
- * Loads all dependencies from the database.
- *
- * The result can be filtered by providing an entity type and a bundle name.
- */
-function conditional_fields_load_dependencies_entity($entity_type = NULL, $bundle = NULL) {
-  $dependencies = \Drupal::entityTypeManager()
-    ->getStorage('conditional_field')
-    ->loadByProperties([
-      'entity_type' => $entity_type,
-      'bundle' => $bundle,
-    ]);
-  return $dependencies;
-}
-
-/**
  * An after_build callback for forms with dependencies.
  *
  * Builds and attaches #states properties to dependent fields, adds additional
