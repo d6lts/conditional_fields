@@ -208,7 +208,7 @@ function conditional_fields_get_state(EntityFormDisplayInterface $form_display, 
     $dependee_form_state = isset($dependee_form_field['#field_parents'], $field_name[0], $form_state) ? WidgetBase::getWidgetState($dependee_form_field['#field_parents'], $field_name[0], $form_state) : NULL;
 
     $dependee_display = $form_display->getComponent($dependee);
-    if (array_key_exists('type', $dependee_display)) {
+    if (is_array($dependee_display) && array_key_exists('type', $dependee_display)) {
       $widget_id = $dependee_display['type'];
     }
 
