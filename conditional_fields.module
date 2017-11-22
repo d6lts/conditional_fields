@@ -122,13 +122,13 @@ function conditional_fields_theme() {
  * Implements hook_entity_operation().
  */
 function conditional_fields_entity_operation(EntityInterface $entity) {
-  $operations = array();
+  $operations = [];
   if ($entity->getEntityTypeId() == 'node_type') {
-    $operations['dependencies'] = array(
+    $operations['dependencies'] = [
       'title' => t('Dependencies'),
       'url' => Url::fromRoute('conditional_fields.tab', [$entity->getEntityTypeId() => $entity->id()]),
       'weight' => 29,
-    );
+    ];
   }
   return $operations;
 }
@@ -199,7 +199,7 @@ function conditional_fields_element_after_build($element, FormStateInterface &$f
       if (isset($dependencies['dependents'][$field_name])) {
         foreach ($dependencies['dependents'][$field_name] as $id => $dependency) {
           if (!isset($form['#conditional_fields'][$field_name]['dependees'][$id])) {
-            conditional_fields_attach_dependency($form, array('#field_name' => $dependency['dependee']), $field, $dependency['options'], $id);
+            conditional_fields_attach_dependency($form, ['#field_name' => $dependency['dependee']], $field, $dependency['options'], $id);
           }
         }
       }
@@ -207,7 +207,7 @@ function conditional_fields_element_after_build($element, FormStateInterface &$f
       if (isset($dependencies['dependees'][$field_name])) {
         foreach ($dependencies['dependees'][$field_name] as $id => $dependency) {
           if (!isset($form['#conditional_fields'][$field_name]['dependents'][$id])) {
-            conditional_fields_attach_dependency($form, $field, array('#field_name' => $dependency['dependent']), $dependency['options'], $id);
+            conditional_fields_attach_dependency($form, $field, ['#field_name' => $dependency['dependent']], $dependency['options'], $id);
           }
         }
       }
@@ -228,7 +228,7 @@ function conditional_fields_load_dependencies($entity_type, $bundle) {
 
   if (!isset($dependencies[$entity_type][$bundle])) {
     if (!empty($entity_type) && !empty($bundle)) {
-      $dependencies[$entity_type][$bundle] = array();
+      $dependencies[$entity_type][$bundle] = [];
     }
 
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $entity */
@@ -331,14 +331,14 @@ function conditional_fields_attach_dependency(&$form, $dependee, $dependent, $op
     // String values are accepted to simplify usage of this function with custom
     // forms.
     if (is_string($dependee) && is_string($dependent)) {
-      $dependee = array(
+      $dependee = [
         '#field_name' => $dependee,
-        '#parents' => array($dependee),
-      );
-      $dependent = array(
+        '#parents' => [$dependee],
+      ];
+      $dependent = [
         '#field_name' => $dependent,
-        '#field_parents' => array($dependent),
-      );
+        '#field_parents' => [$dependent],
+      ];
 
       // Custom dependencies have automatically assigned a progressive id.
       static $current_id;
@@ -355,10 +355,10 @@ function conditional_fields_attach_dependency(&$form, $dependee, $dependent, $op
   // since we will need access to the full structure of the widget.
   if (isset($dependee['#parents'])) {
     $form['#conditional_fields'][$dependee['#parents'][0]]['parents'] = $dependee['#array_parents'];
-    $form['#conditional_fields'][$dependee['#parents'][0]]['dependents'][$id] = array(
+    $form['#conditional_fields'][$dependee['#parents'][0]]['dependents'][$id] = [
       'dependent' => $dependent['#field_name'],
       'options' => $options,
-    );
+    ];
   }
 
   // Attach dependent.
@@ -370,10 +370,10 @@ function conditional_fields_attach_dependency(&$form, $dependee, $dependent, $op
   }
   if (isset($dependent_parents)) {
     $form['#conditional_fields'][$dependent['#parents'][0]]['field_parents'] = $dependent_parents;
-    $form['#conditional_fields'][$dependent['#parents'][0]]['dependees'][$id] = array(
+    $form['#conditional_fields'][$dependent['#parents'][0]]['dependees'][$id] = [
       'dependee' => $dependee['#field_name'],
       'options' => $options,
-    );
+    ];
   }
 
   // Actual processing is done in conditional_fields_form_after_build().
@@ -394,7 +394,7 @@ function conditional_fields_attach_dependency(&$form, $dependee, $dependent, $op
 function _conditional_fields_element_add_property(&$element, $property, $value, $position = 'prepend') {
   // Avoid overriding default element properties that might not yet be set.
   if (!isset($element[$property])) {
-    $element[$property] = isset($element['#type']) ? element_info_property($element['#type'], $property, array()) : array();
+    $element[$property] = isset($element['#type']) ? element_info_property($element['#type'], $property, []) : [];
   }
 
   if (in_array($value, $element[$property])) {

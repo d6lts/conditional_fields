@@ -51,7 +51,7 @@ class ConditionalFieldDateTimeTest extends ConditionalFieldTestBase implements C
       'field_name' => $this->fieldName,
       'entity_type' => 'node',
       'type' => 'datetime',
-      'settings' => array('datetime_type' => 'date'),
+      'settings' => ['datetime_type' => 'date'],
     ];
     $fieldStorage = FieldStorageConfig::create($fieldStorageDefinition);
     $fieldStorage->save();
@@ -68,15 +68,15 @@ class ConditionalFieldDateTimeTest extends ConditionalFieldTestBase implements C
       ])
       ->save();
 
-    $defaultSettings = array(
+    $defaultSettings = [
       'timezone_override' => '',
-    );
+    ];
 
-    $this->displayOptions = array(
+    $this->displayOptions = [
       'type' => 'datetime_default',
       'label' => 'hidden',
-      'settings' => array('format_type' => 'medium') + $defaultSettings,
-    );
+      'settings' => ['format_type' => 'medium'] + $defaultSettings,
+    ];
     $view_display = \Drupal::entityTypeManager()
       ->getStorage('entity_view_display')
       ->load($field->getTargetEntityTypeId() . '.' . $field->getTargetBundle() . '.' . 'full');

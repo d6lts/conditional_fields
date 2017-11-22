@@ -52,13 +52,13 @@ function conditional_fields_form_after_build($form, FormStateInterface &$form_st
 
   // Cycle all dependents.
   foreach ($form['#conditional_fields'] as $dependent => $dependent_info) {
-    $states = array();
+    $states = [];
 
     if (empty($dependent_info['dependees'])) {
       continue;
     }
 
-    $dependent_location = array_merge([], array($dependent));
+    $dependent_location = array_merge([], [$dependent]);
     $dependent_form_field = NestedArray::getValue($form, $dependent_location);
 
     // Cycle the dependant's dependees.
@@ -89,19 +89,19 @@ function conditional_fields_form_after_build($form, FormStateInterface &$form_st
       $state = conditional_fields_get_state($form_display, $dependee, $dependee_form_field, $options);
 
       // Add validation callback to element if the dependency can be evaluated.
-      if (in_array($options['condition'], array(
+      if (in_array($options['condition'], [
         'value',
         'empty',
         '!empty',
         'checked',
         '!checked',
-      ))) {
+      ])) {
         _conditional_fields_element_add_property($dependent_form_field, '#element_validate', 'conditional_fields_dependent_validate', 'append');
       }
 
       conditional_fields_add_state_to_group($states, $state, $options);
 
-      $selector = conditional_fields_field_selector(NestedArray::getValue($form, array($dependent_location[0])));
+      $selector = conditional_fields_field_selector(NestedArray::getValue($form, [$dependent_location[0]]));
       $effects[$selector] = conditional_fields_get_effect($options);
 
     }
@@ -114,7 +114,7 @@ function conditional_fields_form_after_build($form, FormStateInterface &$form_st
     NestedArray::setValue($form, $dependent_location, $dependent_form_field);
 
     // Map the states based on the conjunctions.
-    $states_new = array();
+    $states_new = [];
     foreach ($states as $state_key => $value) {
       // As the main object is ANDed together we can add the AND items directly.
       if (!empty($states[$state_key]['AND'])) {
@@ -124,18 +124,18 @@ function conditional_fields_form_after_build($form, FormStateInterface &$form_st
       // so that we get a JSON array and not an object, as required by the States
       // API for OR and XOR groupings.
       if (!empty($states[$state_key]['OR'])) {
-        $or = array();
+        $or = [];
         foreach ($states[$state_key]['OR'] as $constraint_key => $constraint_value) {
-          $or[] = array($constraint_key => $constraint_value);
+          $or[] = [$constraint_key => $constraint_value];
         }
         // '1' as a string so that we get an object (which means logic groups
         // are ANDed together).
         $states_new[$state_key]['1'] = $or;
       }
       if (!empty($states[$state_key]['XOR'])) {
-        $xor = array('xor');
+        $xor = ['xor'];
         foreach ($states[$state_key]['XOR'] as $constraint_key => $constraint_value) {
-          $xor[] = array($constraint_key => $constraint_value);
+          $xor[] = [$constraint_key => $constraint_value];
         }
         // '2' as a string so that we get an object.
         $states_new[$state_key]['2'] = $xor;
@@ -144,7 +144,7 @@ function conditional_fields_form_after_build($form, FormStateInterface &$form_st
     $states = $states_new;
 
     // Add the #states property to the dependent field.
-    NestedArray::setValue($form, array_merge($dependent_location, array('#states')), $states);
+    NestedArray::setValue($form, array_merge($dependent_location, ['#states']), $states);
   }
 
   $form['#attached']['library'][] = 'conditional_fields/conditional_fields';
@@ -201,7 +201,7 @@ function conditional_fields_get_state(EntityFormDisplayInterface $form_display, 
 
   if ($options['condition'] != 'value') {
     // Conditions different than "value" are always evaluated against TRUE.
-    $state = array($options['state'] => array($options['selector'] => array($options['condition'] => TRUE)));
+    $state = [$options['state'] => [$options['selector'] => [$options['condition'] => TRUE]]];
   }
   else {
     $field_name = explode('[', $dependee_form_field['#name']);
@@ -328,7 +328,7 @@ function conditional_fields_dependent_validate($element, FormStateInterface &$fo
             // Remove the 'value' of the 'add more' button.
             unset($input_state['add_more']);
           }
-          $input_state = (is_null($input_state)) ? array() : $input_state;
+          $input_state = (is_null($input_state)) ? [] : $input_state;
           if (isset($dependent['field_parents'][0])) {
             $field = FieldStorageConfig::loadByName($form['#entity_type'], $dependent['field_parents'][0]);
           }
@@ -343,7 +343,7 @@ function conditional_fields_dependent_validate($element, FormStateInterface &$fo
               $title = $dependent['field_parents'][0];
             }
 
-            $form_state->setErrorByName($field->getName(), t('%name is required.', array('%name' => $title)));
+            $form_state->setErrorByName($field->getName(), t('%name is required.', ['%name' => $title]));
           }
         }
       }
@@ -404,7 +404,7 @@ function conditional_fields_dependent_validate($element, FormStateInterface &$fo
  */
 function conditional_fields_evaluate_dependencies($dependent, $form, $form_state, $grouping = TRUE) {
   $dependencies = $form['#conditional_fields'][reset($dependent['field_parents'])]['dependees'];
-  $evaluated_dependees = array();
+  $evaluated_dependees = [];
 
   foreach ($dependencies as $dependency_id => $dependency) {
     // Extract field values from submitted values.
@@ -473,10 +473,10 @@ function conditional_fields_form_validate($form, FormStateInterface &$form_state
     return;
   }
 
-  $untriggered_dependents_errors = array();
+  $untriggered_dependents_errors = [];
 
   foreach ($form_state->getValue('conditional_fields_untriggered_dependents') as $field) {
-    $parent = array($field['parents'][0]);
+    $parent = [$field['parents'][0]];
     $dependent = NestedArray::getValue($form, $parent);
     $field_values_location = conditional_fields_form_field_get_values($dependent, $form_state);
 
@@ -598,7 +598,7 @@ function conditional_fields_evaluate_dependency($context, $values, $options) {
       // If $values is a string and $dependency_values an array, convert $values
       // to the standard field array form format. This covers cases like single
       // value textfields.
-      $values = array(array('value' => $values));
+      $values = [['value' => $values]];
     }
 
     // If we are in form context, we are almost done.
@@ -610,7 +610,7 @@ function conditional_fields_evaluate_dependency($context, $values, $options) {
           return FALSE;
         }
         $key = current(array_keys((array) current($values)));
-        $dependency_values = array(array($key => $options['value'][0][$key]));
+        $dependency_values = [[$key => $options['value'][0][$key]]];
         $temp[][$key] = $values[0][$key];
         $values = $temp;
       }
@@ -655,7 +655,7 @@ function conditional_fields_evaluate_dependency($context, $values, $options) {
   }
 
   // Flatten array of values.
-  $reference_values = array();
+  $reference_values = [];
   foreach ((array) $values as $value) {
     // TODO: support multiple values.
     $reference_values[] = is_array($value) ? array_shift($value) : $value;

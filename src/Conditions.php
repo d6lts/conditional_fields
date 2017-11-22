@@ -15,7 +15,7 @@ class Conditions {
    * Provides default options for a dependency.
    */
   public function conditionalFieldsDependencyDefaultSettings() {
-    return array(
+    return [
       'state' => 'visible',
       'condition' => 'value',
       'grouping' => 'AND',
@@ -24,19 +24,19 @@ class Conditions {
       // The param default value MUST match to schema declaration.
       // @see conditional_fields.schema.yml
       'value' => '',
-      'values' => array(),
-      'value_form' => array(),
+      'values' => [],
+      'value_form' => [],
       'effect' => 'show',
-      'effect_options' => array(),
+      'effect_options' => [],
       'selector' => '',
-    );
+    ];
   }
 
   /**
    * Builds a list of supported states that may be applied to a dependent field.
    */
   public function conditionalFieldsStates() {
-    $states = array(
+    $states = [
       // Supported by States API.
       'visible' => $this->t('Visible'),
       '!visible' => $this->t('Invisible'),
@@ -63,7 +63,7 @@ class Conditions {
       '!readonly'  => $this->t('Read/Write'),
       'readonly'   => $this->t('Read Only'),
       */
-    );
+    ];
 
     // Allow other modules to modify the states.
     \Drupal::moduleHandler()->alter('conditionalFieldsStates', $states);
@@ -89,67 +89,67 @@ class Conditions {
    *     descriptions and default values.
    */
   public function conditionalFieldsEffects() {
-    $effects = array(
-      'show' => array(
+    $effects = [
+      'show' => [
         'label' => $this->t('Show/Hide'),
-        'states' => array('visible', '!visible'),
-      ),
-      'fade' => array(
+        'states' => ['visible', '!visible'],
+      ],
+      'fade' => [
         'label' => $this->t('Fade in/Fade out'),
-        'states' => array('visible', '!visible'),
-        'options' => array(
-          'speed' => array(
+        'states' => ['visible', '!visible'],
+        'options' => [
+          'speed' => [
             '#type' => 'textfield',
             '#description' => $this->t('The speed at which the animation is performed, in milliseconds.'),
             '#default_value' => 400,
-          ),
-        ),
-      ),
-      'slide' => array(
+          ],
+        ],
+      ],
+      'slide' => [
         'label' => $this->t('Slide down/Slide up'),
-        'states' => array('visible', '!visible'),
-        'options' => array(
-          'speed' => array(
+        'states' => ['visible', '!visible'],
+        'options' => [
+          'speed' => [
             '#type' => 'textfield',
             '#description' => $this->t('The speed at which the animation is performed, in milliseconds.'),
             '#default_value' => 400,
-          ),
-        ),
-      ),
-      'fill' => array(
+          ],
+        ],
+      ],
+      'fill' => [
         'label' => $this->t('Fill field with a value'),
-        'states' => array('!empty'),
-        'options' => array(
-          'value' => array(
+        'states' => ['!empty'],
+        'options' => [
+          'value' => [
             '#type' => 'textfield',
             '#description' => $this->t('The value that should be given to the field when automatically filled.'),
             '#default_value' => '',
-          ),
-          'reset' => array(
+          ],
+          'reset' => [
             '#type' => 'checkbox',
             '#title' => $this->t('Restore previous value when untriggered'),
             '#default_value' => 1,
-          ),
-        ),
-      ),
-      'empty' => array(
+          ],
+        ],
+      ],
+      'empty' => [
         'label' => $this->t('Empty field'),
-        'states' => array('empty'),
-        'options' => array(
-          'value' => array(
+        'states' => ['empty'],
+        'options' => [
+          'value' => [
             '#type' => 'hidden',
             '#description' => $this->t('The value that should be given to the field when automatically emptied.'),
             '#value' => '',
             '#default_value' => '',
-          ),
-          'reset' => array(
+          ],
+          'reset' => [
             '#type' => 'checkbox',
             '#title' => $this->t('Restore previous value when untriggered'),
             '#default_value' => 1,
-          ),
-        ),
-      ),
-    );
+          ],
+        ],
+      ],
+    ];
 
     // Allow other modules to modify the effects.
     \Drupal::moduleHandler()->alter('conditionalFieldsEffects', $effects);
@@ -162,14 +162,14 @@ class Conditions {
    */
   public function conditionalFieldsConditions($checkboxes = TRUE) {
     // Supported by States API.
-    $conditions = array(
+    $conditions = [
       '!empty' => $this->t('Filled'),
       'empty' => $this->t('Empty'),
       'touched' => $this->t('Touched'),
       '!touched' => $this->t('Untouched'),
       'focused' => $this->t('Focused'),
       '!focused' => $this->t('Unfocused'),
-    );
+    ];
 
     if ($checkboxes) {
       // Relevant only if control is a list of checkboxes.

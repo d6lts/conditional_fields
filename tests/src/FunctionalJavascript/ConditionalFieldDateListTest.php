@@ -46,16 +46,16 @@ class ConditionalFieldDateListTest extends ConditionalFieldTestBase implements C
    */
   protected function setUp() {
     parent::setUp();
-    $this->fieldSelectors = array(
+    $this->fieldSelectors = [
       'day' => "[name=\"{$this->fieldName}[0][value][day]\"]",
       'month' => "[name=\"{$this->fieldName}[0][value][month]\"]",
       'year' => "[name=\"{$this->fieldName}[0][value][year]\"]",
-    );
+    ];
     $fieldStorageDefinition = [
       'field_name'  => $this->fieldName,
       'entity_type' => 'node',
       'type'        => 'datetime',
-      'settings' => array('datetime_type' => 'date'),
+      'settings' => ['datetime_type' => 'date'],
     ];
     $fieldStorage = FieldStorageConfig::create($fieldStorageDefinition);
     $fieldStorage->save();

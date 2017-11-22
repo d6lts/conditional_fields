@@ -44,7 +44,7 @@ class Checkbox extends ConditionalFieldsHandlerBase {
         break;
     }
 
-    $state[$options['state']][$options['selector']] = array('checked' => $checked);
+    $state[$options['state']][$options['selector']] = ['checked' => $checked];
 
     return $state;
   }

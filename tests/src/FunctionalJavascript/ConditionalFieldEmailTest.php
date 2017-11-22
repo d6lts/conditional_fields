@@ -85,22 +85,22 @@ class ConditionalFieldEmailTest extends ConditionalFieldTestBase implements Cond
 
     $this->fieldSelector = '[name="field_' . $this->fieldName . '[0][value]"]';
 
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'field_name' => 'field_' . $this->fieldName,
       'entity_type' => 'node',
       'type' => 'email',
       'cardinality' => 1,
-    ))->save();
+    ])->save();
 
     FieldConfig::create([
       'field_name' => 'field_' . $this->fieldName,
       'entity_type' => 'node',
       'bundle' => 'article',
-      'settings' => array(
+      'settings' => [
         'min' => '',
         'max' => '',
         'prefix' => '',
-      )
+      ]
     ])->save();
 
     EntityFormDisplay::load('node.article.default')

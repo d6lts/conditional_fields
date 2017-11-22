@@ -19,7 +19,7 @@ class DefaultStateHandler extends ConditionalFieldsHandlerBase {
    */
   public function statesHandler($field, $field_info, $options) {
     // Build the values that trigger the dependency.
-    $values = array();
+    $values = [];
     $values_set = $options['values_set'];
 
     switch ($values_set) {
@@ -50,7 +50,7 @@ class DefaultStateHandler extends ConditionalFieldsHandlerBase {
         $values_array = explode("\r\n", $options['values']);
         if (is_array($values_array)) {
           foreach ($values_array as $value) {
-            $values[] = array('value' => $value);
+            $values[] = ['value' => $value];
           }
         }
         else {
@@ -59,7 +59,7 @@ class DefaultStateHandler extends ConditionalFieldsHandlerBase {
         break;
     }
 
-    $state = array($options['state'] => array($options['selector'] => $values));
+    $state = [$options['state'] => [$options['selector'] => $values]];
 
     return $state;
   }

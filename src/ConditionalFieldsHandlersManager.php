@@ -94,7 +94,7 @@ class ConditionalFieldsHandlersManager extends DefaultPluginManager implements F
   /**
    * {@inheritdoc}
    */
-  public function getFallbackPluginId($plugin_id, array $configuration = array()) {
+  public function getFallbackPluginId($plugin_id, array $configuration = []) {
     return 'states_handler_default_state';
   }
 
