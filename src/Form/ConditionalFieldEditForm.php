@@ -313,7 +313,7 @@ class ConditionalFieldEditForm extends FormBase {
       if ($settings['values_set'] == CONDITIONAL_FIELDS_DEPENDENCY_VALUES_WIDGET) {
         // Get and save value as string with timezone.
         $value = &$settings[$dependee];
-        if (is_object($value[0]['value']) && $value[0]['value'] instanceof DrupalDateTime) {
+        if (!empty($value[0]['value']) && is_object($value[0]['value']) && $value[0]['value'] instanceof DrupalDateTime) {
           foreach ($value as $delta => $date) {
             if (!empty($date['value'])) {
               // Need to find a solution to handle both datetime and date types.
