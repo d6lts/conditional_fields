@@ -296,7 +296,10 @@ class ConditionalFieldForm extends FormBase {
         '#options' => $fields,
         '#prefix' => '<div class="add-new-placeholder">' . $this->t('Add new dependency') . '</div>',
         '#required' => TRUE,
-        '#attributes' => ['class' => ['conditional-fields-selector']],
+        '#attributes' => [
+          'class' => ['conditional-fields-selector'],
+          'style' => ['resize: both;'],
+        ],
       ],
       'dependee' => [
         '#type' => 'select',
