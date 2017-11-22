@@ -8,6 +8,8 @@
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\WidgetInterface;
 use Drupal\Core\Url;
 
 /**
@@ -443,4 +445,25 @@ function conditional_fields_field_selector($field) {
   }
 
   return FALSE;
+}
+
+/**
+ * Implements hook_field_widget_third_party_settings_form().
+ *
+ * If the field has conditional fields, then ensure they are added on the form
+ * display widget settings page so they are not lost.
+ */
+function conditional_fields_field_widget_third_party_settings_form(WidgetInterface $plugin, FieldDefinitionInterface $field_definition, $form_mode, $form, FormStateInterface $form_state) {
+  $element = [];
+  $settings = $plugin->getThirdPartySettings('conditional_fields');
+
+  if (!empty($settings)) {
+    foreach ($settings as $uuid => $setting) {
+      $element[$uuid] = [
+        '#type' => 'value',
+        '#value' => $setting,
+      ];
+    }
+  }
+  return $element;
 }
