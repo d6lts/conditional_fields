@@ -44,10 +44,10 @@ class Select extends ConditionalFieldsHandlerBase {
         $regex = TRUE;
       case CONDITIONAL_FIELDS_DEPENDENCY_VALUES_NOT:
       case CONDITIONAL_FIELDS_DEPENDENCY_VALUES_OR:
-        foreach ($options['values'] as $value) {
+        foreach ((array) $options['values'] as $value) {
           $select_states[$options['state']][] = [
             $options['selector'] => [
-              $options['condition'] => empty($regex) ? [$value] : $options['value'],
+              $options['condition'] => empty($regex) ? $value : $options['value'],
             ],
           ];
         }
