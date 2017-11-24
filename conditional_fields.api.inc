@@ -201,8 +201,9 @@ function conditional_fields_get_state(EntityFormDisplayInterface $form_display, 
     // selected on manage dependency tab. As temporary solution put cardinality
     // in $options. Format of #states depend on field widget and field
     // cardinality (it can be like value: string and value: [array]).
-    $field_config = FieldStorageConfig::loadByName($form_display->getTargetEntityTypeId(), $dependee);
-    $options['field_cardinality'] = $field_config->getCardinality();
+    if ($field_config = FieldStorageConfig::loadByName($form_display->getTargetEntityTypeId(), $dependee)) {
+      $options['field_cardinality'] = $field_config->getCardinality();
+    }
 
     // Execute special handler for fields that need further processing.
     // The handler has no return value. Modify the $state parameter by
