@@ -30,7 +30,7 @@ function conditional_fields_rules_condition_is_triggered($node, $settings) {
   }
   foreach ($data as $field) {
     if ($settings['field_name'] == $field['field_name']) {
-      if (!conditional_fields_is_triggered($node->$field['control_field_name'], $field['trigger_values'])) {
+      if (!conditional_fields_is_triggered($node->{$field['control_field_name']}, $field['trigger_values'])) {
         return FALSE;
       }
     }
